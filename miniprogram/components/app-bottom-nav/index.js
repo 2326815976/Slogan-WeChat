@@ -83,7 +83,7 @@ Component({
     hasBottomTabbar: true,
     useOfficialCustomTabBar: false,
     runtimeConfig: buildRuntimeConfigPreset('standard'),
-    list: hydrateTabBarItems(buildRuntimeConfigPreset('standard'), false),
+    list: [],
   },
   observers: {
     show() {
@@ -242,7 +242,7 @@ Component({
     applyRuntimeConfig(runtimeConfig) {
       const normalized = normalizeRuntimeConfig(runtimeConfig);
       const nextList = hydrateTabBarItems(normalized, this.data.isLoggedIn);
-      this.setData({ runtimeConfig: normalized, runtimeConfigReady: true });
+      this.setData({ runtimeConfig: normalized, runtimeConfigReady: true, list: nextList });
 
       const app = typeof getApp === 'function' ? getApp() : null;
       if (app && typeof app.getPagePresentation === 'function') {

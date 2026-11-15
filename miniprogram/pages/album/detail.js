@@ -564,6 +564,7 @@ Page({
 
     key: "",
     loading: true,
+    photoLoadError: "",
     loadingMore: false,
     switchingFolderLoading: false,
     pendingFolderPhotoIds: [],
@@ -659,7 +660,7 @@ Page({
   prefetchingAlbumFolderId: "",
   prefetchedAlbumPage: null,
 
-  async onLoad(options) {
+  onLoad(options) {
     const app = getApp();
     const globalData = app && app.globalData ? app.globalData : {};
     const safeTop = Number(globalData.statusBarHeight || 0);
@@ -764,23 +765,15 @@ Page({
         });
       });
     }
-    const accessDenied = await this.guardManagedAccess();
-    if (accessDenied) {
-      return;
-    }
-    if (!serviceMissing) {
-      if (backendReady) {
-        this.loadAlbum();
-      } else if (app && typeof app.ensureBackendReady === "function") {
-        this.setData({ loading: true });
-        void app.ensureBackendReady();
-      }
-    } else {
+    // 首次请求统一由 onShow 发起，避免两个生命周期同时重置照片列表。
+    if (serviceMissing) {
       this.setData({ loading: false });
     }
   },
 
   async onShow() {
+    const showTicket = (this._showTicket || 0) + 1;
+    this._showTicket = showTicket;
     const app = typeof getApp === "function" ? getApp() : null;
     if (app && typeof app.ensureAuditConfig === "function") {
       try {
@@ -790,6 +783,7 @@ Page({
       }
     }
 
+    if (showTicket !== this._showTicket) return false;
     const normalized = normalizeRuntimeConfig(
       app && app.globalData
         ? app.globalData.runtimeConfig || null
@@ -807,7 +801,7 @@ Page({
     });
     this.scheduleToolbarStickyTopSync();
     const accessDenied = await this.guardManagedAccess();
-    if (accessDenied) return false;
+    if (showTicket !== this._showTicket || accessDenied) return false;
 
     const appEnterSeq = Math.max(
       0,
@@ -834,6 +828,7 @@ Page({
         // ignore
       }
     }
+    if (showTicket !== this._showTicket) return false;
     const nextBackendReady = Boolean(app && app.globalData && app.globalData.backendReady);
     const nextBackendReconnecting = !nextBackendReady && Boolean(
       app && app.globalData && app.globalData.backendReconnecting
@@ -914,6 +909,7 @@ Page({
   },
 
   onUnload() {
+    this._showTicket = (this._showTicket || 0) + 1;
     this.clearToastTimer();
     this.clearDownloadProgressTimer();
     this.clearFolderGuideTimer();
@@ -1467,6 +1463,7 @@ Page({
 
     const nextData = {
       allPhotos: mergedRows,
+      photoLoadError: "",
       pageNo,
       total,
       hasMore,
@@ -2150,6 +2147,8 @@ Page({
         input_key: this.data.key,
         include_photos: false,
       });
+      // 重复进入或重载可能并发请求，旧响应必须在任何页面更新之前退出。
+      if (loadTicket !== this.photoLoadTicket) return;
       const rawPayload = r ? r.data : null;
       const payload = resolveAlbumContentPayload(rawPayload);
       const rpcErrorMessage = String((r && r.error && r.error.message) || "").trim();
@@ -2308,6 +2307,7 @@ Page({
       if (loadTicket !== this.photoLoadTicket) return;
       await this.loadPhotoPage(ROOT_FOLDER_ID, 1, { reset: true, silent: false });
     } catch (e) {
+      if (loadTicket !== this.photoLoadTicket) return;
       wx.showToast({ title: "加载失败", icon: "none" });
       this.setData({ loading: false, loadingMore: false, switchingFolderLoading: false, pendingFolderPhotoIds: [] });
     }
@@ -2320,6 +2320,15 @@ Page({
         : ROOT_FOLDER_ID;
     const previousId = String(this.data.selectedFolder || ROOT_FOLDER_ID);
     if (id === previousId) return;
+    const previousPageState = {
+      pageNo: this.data.pageNo,
+      total: this.data.total,
+      hasMore: this.data.hasMore,
+      photoLoadError: this.data.photoLoadError,
+      selectedPhotoMap: this.data.selectedPhotoMap,
+      selectedCount: this.data.selectedCount,
+      isSelectAll: this.data.isSelectAll,
+    };
     if (this.data.showFolderGuide) {
       this.dismissFolderGuide();
     }
@@ -2363,6 +2372,7 @@ Page({
     const success = await this.loadPhotoPage(id, 1, { reset: true, silent: true });
     if (!success && String(this.data.selectedFolder || ROOT_FOLDER_ID) === id) {
       await new Promise((resolve) => this.setData({
+        ...previousPageState,
         selectedFolder: previousId,
         switchingFolderLoading: false,
         pendingFolderPhotoIds: [],
@@ -2394,6 +2404,8 @@ Page({
     let nextPendingFolderPhotoIds = null;
 
     if (reset) {
+      this.loadingNextPhotoPage = false;
+      this.setData({ photoLoadError: "" });
       this.albumAutoFillRemaining = ALBUM_INITIAL_AUTOFILL_MAX_BATCHES;
       this.albumLoadZoneArmed = true;
       this.clearAutoFillTimer();
@@ -2406,18 +2418,7 @@ Page({
     if (!reset && !this.data.hasMore) return false;
 
     if (this.useLegacyPhotoPaging) {
-      if (!reset) {
-        this.loadingNextPhotoPage = true;
-        this.showPagingSkeletons(ALBUM_PAGING_SKELETON_COUNT);
-      }
-      try {
-        return await this.loadPhotoPageLegacy(targetFolderId, nextPageNo, { reset, silent });
-      } finally {
-        if (!reset) {
-          this.loadingNextPhotoPage = false;
-          this.clearPagingSkeletons();
-        }
-      }
+      return this.loadPhotoPageLegacy(targetFolderId, nextPageNo, { reset, silent, skipWave });
     }
 
     if (reset) {
@@ -2452,24 +2453,24 @@ Page({
 
     try {
       const pageData = nextPageNo > 1
-        ? await (this.prefetchAlbumPhotoPage(targetFolderId, nextPageNo) || this.fetchAlbumPhotoPageData(targetFolderId, nextPageNo))
+        ? (await this.prefetchAlbumPhotoPage(targetFolderId, nextPageNo)) || await this.fetchAlbumPhotoPageData(targetFolderId, nextPageNo)
         : await this.fetchAlbumPhotoPageData(targetFolderId, nextPageNo);
+
+      if (ticket !== this.photoLoadTicket) return false;
+      if (String(this.data.selectedFolder || ROOT_FOLDER_ID) !== targetFolderId) return false;
 
       if (pageData && pageData.fallbackLegacy) {
         this.useLegacyPhotoPaging = true;
-        this.photoLoadTicket += 1;
-        return this.loadPhotoPageLegacy(targetFolderId, nextPageNo, { reset, silent });
+        return this.loadPhotoPageLegacy(targetFolderId, nextPageNo, { reset, silent, skipWave });
       }
 
       if (!pageData || pageData.errorMessage) {
+        this.setData({ photoLoadError: "照片暂时未能加载，请重试" });
         if (!(reset && silent)) {
           wx.showToast({ title: (pageData && pageData.errorMessage) || "加载失败", icon: "none" });
         }
         return false;
       }
-
-      if (ticket !== this.photoLoadTicket) return false;
-      if (String(this.data.selectedFolder || ROOT_FOLDER_ID) !== targetFolderId) return false;
 
       if (this.canUsePrefetchedAlbumPage(targetFolderId, nextPageNo)) {
         this.prefetchedAlbumPage = null;
@@ -2481,6 +2482,9 @@ Page({
       nextPendingFolderPhotoIds = committed && committed.nextPendingFolderPhotoIds;
       return true;
     } catch (e) {
+      if (ticket !== this.photoLoadTicket) return false;
+      if (String(this.data.selectedFolder || ROOT_FOLDER_ID) !== targetFolderId) return false;
+      this.setData({ photoLoadError: "照片暂时未能加载，请重试" });
       if (reset && nextPendingFolderPhotoIds !== null) {
         nextPendingFolderPhotoIds = [];
         this.setData({ pendingFolderPhotoIds: [] });
@@ -2490,7 +2494,7 @@ Page({
       }
       return false;
     } finally {
-      if (!reset) {
+      if (!reset && ticket === this.photoLoadTicket) {
         this.loadingNextPhotoPage = false;
       }
       if (ticket === this.photoLoadTicket) {
@@ -2519,6 +2523,11 @@ Page({
         });
       }
     }
+  },
+
+  retryPhotoLoad() {
+    if (this.data.loading || this.data.loadingMore || this.data.switchingFolderLoading) return;
+    return this.loadPhotoPage(this.data.selectedFolder || ROOT_FOLDER_ID, 1, { reset: true });
   },
 
   async loadPhotoPageLegacy(folderId, pageNo, opts) {
@@ -2565,6 +2574,8 @@ Page({
           input_key: this.data.key,
           include_photos: true,
         });
+        if (ticket !== this.photoLoadTicket) return false;
+        if (String(this.data.selectedFolder || ROOT_FOLDER_ID) !== targetFolderId) return false;
         const rawPayload = r ? r.data : null;
         const payload = resolveAlbumContentPayload(rawPayload);
         const rpcErrorMessage = String((r && r.error && r.error.message) || "").trim();
@@ -2573,8 +2584,9 @@ Page({
             ? readRpcPayloadErrorMessage(rawPayload || payload)
             : "";
         if (rpcErrorMessage || payloadErrorMessage || !payload) {
+          this.setData({ photoLoadError: "照片暂时未能加载，请重试" });
           if (!(reset && silent)) {
-            wx.showToast({ title: (pageData && pageData.errorMessage) || "加载失败", icon: "none" });
+            wx.showToast({ title: rpcErrorMessage || payloadErrorMessage || "加载失败", icon: "none" });
           }
           return;
         }
@@ -2583,6 +2595,8 @@ Page({
         const allRows = normalizedAllRows.length > 0
           ? await hydratePhotoDimensions(normalizedAllRows)
           : normalizedAllRows;
+        if (ticket !== this.photoLoadTicket) return false;
+        if (String(this.data.selectedFolder || ROOT_FOLDER_ID) !== targetFolderId) return false;
         fullRows = filterPhotosByFolder(allRows, targetFolderId);
         this.legacyPhotosByFolder[targetFolderId] = fullRows;
         this.cacheFullPhotosForFolder(targetFolderId, fullRows);
@@ -2616,6 +2630,7 @@ Page({
 
       const nextData = {
         allPhotos: mergedRows,
+        photoLoadError: "",
         pageNo: nextPageNo,
         total,
         hasMore,
@@ -2630,11 +2645,14 @@ Page({
       );
       return true;
     } catch (e) {
+      if (ticket !== this.photoLoadTicket) return false;
+      if (String(this.data.selectedFolder || ROOT_FOLDER_ID) !== targetFolderId) return false;
+      this.setData({ photoLoadError: "照片暂时未能加载，请重试" });
       if (!(reset && silent)) {
         wx.showToast({ title: "加载失败", icon: "none" });
       }
     } finally {
-      if (!reset) {
+      if (!reset && ticket === this.photoLoadTicket) {
         this.loadingNextPhotoPage = false;
       }
       if (ticket === this.photoLoadTicket) {

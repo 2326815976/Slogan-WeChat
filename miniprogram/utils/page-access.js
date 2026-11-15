@@ -5,8 +5,6 @@ const {
   normalizeRuntimeConfig,
 } = require('./runtime-config');
 
-let pageCenterAccessEndpointState = 'unknown';
-
 function normalizeMiniProgramPath(value) {
   return String(value || '').trim().replace(/^\/+/, '');
 }
@@ -70,10 +68,6 @@ function isTransientPageAccessError(error) {
   ]);
 }
 
-function shouldFailOpenForPageAccess(error) {
-  return isMissingPageAccessEndpointError(error) || isTransientPageAccessError(error);
-}
-
 function isLegacyPageAccessPayload(payload) {
   const reason = String((payload && payload.reason) || '').trim().toLowerCase();
   const source = String((payload && payload.source) || '').trim().toLowerCase();
@@ -135,13 +129,6 @@ function resolveLocalPageAccess(app, pageKey, presentationMode) {
 }
 
 async function checkMiniProgramPageAccess(pageKey, presentationMode) {
-  if (pageCenterAccessEndpointState === 'unsupported') {
-    return {
-      allowed: presentationMode === 'tabbar',
-      reason: 'access_endpoint_unavailable',
-    };
-  }
-
   const params = [
     'page_key=' + encodeURIComponent(String(pageKey || '').trim()),
     'channel=miniprogram',
@@ -154,7 +141,6 @@ async function checkMiniProgramPageAccess(pageKey, presentationMode) {
     method: 'GET',
     timeout: 10000,
   });
-  pageCenterAccessEndpointState = 'supported';
   return payload;
 }
 
@@ -246,35 +232,10 @@ async function guardMiniProgramPageAccess(options) {
     }
     return { allowed: false, reason };
   } catch (error) {
-    if (shouldFailOpenForPageAccess(error) && !isStandalone) {
+    if (isMissingPageAccessEndpointError(error) || isTransientPageAccessError(error)) {
       const missingEndpoint = isMissingPageAccessEndpointError(error);
-      if (missingEndpoint) {
-        pageCenterAccessEndpointState = 'unsupported';
-      }
-      try {
-        console.warn('[page-access] access guard bypassed', {
-          pageKey,
-          presentationMode,
-          statusCode: Number((error && error.statusCode) || 0) || undefined,
-          reason: missingEndpoint ? 'access_endpoint_unavailable' : 'access_check_transient_failure',
-          message: error && error.message ? String(error.message) : '',
-        });
-      } catch (_) {
-        // ignore log failure
-      }
-      return {
-        allowed: true,
-        reason: missingEndpoint ? 'access_endpoint_unavailable' : 'access_check_transient_failure',
-        data: null,
-      };
-    }
-
-    if (shouldFailOpenForPageAccess(error) && isStandalone) {
-      const missingEndpoint = isMissingPageAccessEndpointError(error);
-      if (missingEndpoint) {
-        pageCenterAccessEndpointState = 'unsupported';
-      }
-      relaunchToRoute(previewDeniedRoute);
+      // 没有可验证的发布规则时不开放页面，也不在几个未确认的页面之间循环跳转。
+      wx.showToast({ title: '页面配置加载失败，请稍后重试', icon: 'none' });
       return {
         allowed: false,
         reason: missingEndpoint ? 'access_endpoint_unavailable' : 'access_check_transient_failure',

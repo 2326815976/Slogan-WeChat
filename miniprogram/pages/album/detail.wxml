@@ -302,8 +302,9 @@
         </view>
       </view>
 
-      <view class="empty motion-fade-up motion-delay-5" wx:if="{{photos.length === 0}}">
-        <text class="empty-text">暂无照片</text>
+      <view class="empty motion-fade-up motion-delay-5" wx:if="{{photos.length === 0 && !loading && !switchingFolderLoading}}">
+        <text class="empty-text">{{photoLoadError || '暂无照片'}}</text>
+        <button wx:if="{{photoLoadError}}" class="retry-photos-btn" bindtap="retryPhotoLoad">重新加载</button>
       </view>
 
       <view class="donation-entry motion-fade-up motion-delay-6" wx:if="{{album.enable_tipping && album.donation_qr_code_url}}">

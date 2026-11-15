@@ -241,7 +241,7 @@ function buildRuntimeConfigPreset(sceneCode) {
 function normalizeTabBarItems(input) {
   const fallback = buildStandardTabBarItems();
   const rows = parseJsonArray(input);
-  if (!rows || rows.length === 0) {
+  if (!rows) {
     return fallback;
   }
 
@@ -287,7 +287,7 @@ function normalizeTabBarItems(input) {
   });
 
   const enabledRows = list.filter((item) => item.enabled);
-  return (enabledRows.length > 0 ? enabledRows : fallback).slice(0, MAX_TAB_BAR_ITEMS);
+  return enabledRows.slice(0, MAX_TAB_BAR_ITEMS);
 }
 
 function getTabBarPagePathSet(runtimeConfig, options) {
@@ -344,11 +344,13 @@ function normalizeHomeEntryPagePath(value, tabBarItems, homeMode) {
     (item) => item && item.pagePath === raw && item.enabled
   );
   if (matched) return matched.pagePath;
-  if (homeMode === 'pose') return 'pages/index/index';
+  if (homeMode === 'pose' && tabBarItems.some((item) => item && item.enabled && item.pagePath === 'pages/index/index')) {
+    return 'pages/index/index';
+  }
   const firstEnabled = (Array.isArray(tabBarItems) ? tabBarItems : []).find(
     (item) => item && item.enabled
   );
-  return firstEnabled ? firstEnabled.pagePath : 'pages/gallery/index';
+  return firstEnabled ? firstEnabled.pagePath : '';
 }
 
 function normalizeManagedPageMetaMap(input) {
@@ -479,7 +481,7 @@ function normalizeRuntimeConfigPayload(payload) {
     current = next;
   }
 
-  return buildRuntimeConfigPreset('standard');
+  return null;
 }
 
 function getDisplayedTabBarItems(runtimeConfig, isLoggedIn) {
@@ -495,19 +497,11 @@ function getDisplayedTabBarItems(runtimeConfig, isLoggedIn) {
 
 function getHomeRedirectPath(runtimeConfig) {
   const config = normalizeRuntimeConfig(runtimeConfig);
-  const homeEntry = normalizeHomeEntryPagePath(
+  return normalizeHomeEntryPagePath(
     config.homeEntryPagePath,
     config.tabBarItems,
     config.homeMode
   );
-  if (homeEntry) {
-    return homeEntry;
-  }
-  const firstEnabled = config.tabBarItems.find((item) => item && item.enabled);
-  if (config.homeMode === 'gallery') {
-    return firstEnabled ? firstEnabled.pagePath : 'pages/gallery/index';
-  }
-  return 'pages/index/index';
 }
 
 function getManagedPageAccess(runtimeConfig, pageKey) {

@@ -315,6 +315,7 @@ function primeSessionCache(payload) {
     clearSessionCache();
     return null;
   }
+  sessionCacheGeneration += 1;
   cachedSessionPayload = payload;
   cachedSessionAt = Date.now();
   pendingSessionRequest = null;
@@ -341,7 +342,7 @@ async function getSession(options) {
     return pendingSessionRequest;
   }
 
-  const requestGeneration = sessionCacheGeneration;
+  const requestGeneration = ++sessionCacheGeneration;
   pendingSessionRequest = requestJson("/api/auth/session", { method: "GET" })
     .then((payload) => {
       if (requestGeneration !== sessionCacheGeneration) {
@@ -356,11 +357,16 @@ async function getSession(options) {
       return payload;
     })
     .catch((error) => {
+      if (requestGeneration !== sessionCacheGeneration) {
+        return null;
+      }
       clearSessionCache();
       throw error;
     })
     .finally(() => {
-      pendingSessionRequest = null;
+      if (requestGeneration === sessionCacheGeneration) {
+        pendingSessionRequest = null;
+      }
     });
 
   return pendingSessionRequest;

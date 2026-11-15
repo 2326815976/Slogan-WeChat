@@ -2990,7 +2990,7 @@ Page({
     try {
       const pageData =
         pageNo > 1
-          ? await (this.prefetchGalleryPage(pageNo, targetFolderId) || this.fetchGalleryPageData(pageNo, targetFolderId))
+          ? (await this.prefetchGalleryPage(pageNo, targetFolderId)) || await this.fetchGalleryPageData(pageNo, targetFolderId)
           : await this.fetchGalleryPageData(pageNo, targetFolderId);
 
       if (ticket !== this.galleryLoadTicket) {

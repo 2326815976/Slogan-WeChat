@@ -155,8 +155,8 @@ button::after {
   background: rgba(255, 200, 87, 0.15);
   display: flex;
   align-items: center;
-  margin-top: 24rpx;
-  margin-bottom: 14rpx;
+  margin-top: 8rpx;
+  margin-bottom: 10rpx;
   overflow: hidden;
 }
 
@@ -1098,6 +1098,15 @@ button::after {
 
 .empty-text {
   color: rgba(93, 64, 55, 0.5);
+  font-size: 26rpx;
+}
+
+.retry-photos-btn {
+  margin: 24rpx auto 0;
+  width: 220rpx;
+  background: #FFC857;
+  color: #5D4037;
+  border-radius: 20rpx;
   font-size: 26rpx;
 }
 

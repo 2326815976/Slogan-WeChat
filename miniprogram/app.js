@@ -603,6 +603,9 @@ App({
 
   applyRuntimeConfig(runtimeConfig, options) {
     const normalized = normalizeRuntimeConfigPayload(runtimeConfig);
+    if (!normalized) {
+      throw new Error("页面配置无效，请稍后重试");
+    }
     const markReady =
       !options || !Object.prototype.hasOwnProperty.call(options, "markReady")
         ? true
@@ -774,6 +777,10 @@ App({
         return this.applyRuntimeConfig(runtimeConfig, { notify: true, persistCache: true });
       })
       .catch((error) => {
+        // 本次会话已确认的配置可以继续使用，失败不延长刷新有效期。
+        if (this.globalData.auditConfigReady) {
+          return this.globalData.runtimeConfig;
+        }
         const cached = loadCachedRuntimeConfig();
         const fallback = cached || buildRuntimeConfigPreset("standard");
         const applied = this.applyRuntimeConfig(fallback, {

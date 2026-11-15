@@ -264,13 +264,19 @@ Component({
     },
 
     syncForPage(pagePath) {
+      const app = typeof getApp === "function" ? getApp() : null;
+      const globalData = app && app.globalData ? app.globalData : {};
+      if (!globalData.auditConfigReady) {
+        this.setData({ runtimeConfigReady: false, visible: false, list: [] });
+        return;
+      }
       const normalizedPagePath = normalizeMiniProgramRoutePath(pagePath);
       if (!normalizedPagePath) {
         this.applyList(Array.isArray(this.data.list) ? this.data.list : []);
         return;
       }
 
-      const normalizedRuntimeConfig = normalizeRuntimeConfig(this.data.runtimeConfig);
+      const normalizedRuntimeConfig = normalizeRuntimeConfig(globalData.runtimeConfig);
       const nextList = hydrateTabBarItems(normalizedRuntimeConfig, this.data.isLoggedIn);
       const nextHasBottomTabbar = isTabBarPagePath(normalizedPagePath, normalizedRuntimeConfig);
 

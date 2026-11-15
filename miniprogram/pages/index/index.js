@@ -134,6 +134,7 @@ Page({
     showTagSelector: false,
     shakeEnabled: false,
     auditChecking: true,
+    runtimeConfigError: "",
     pageReady: false,
     pagePresentationMode: "tabbar",
     pageFallbackRoute: "",
@@ -188,6 +189,7 @@ Page({
       allowPoseBetaBypass,
       betaPoseBypassAllowed: Boolean(this.betaPoseBypassAllowed),
       auditChecking: options && options.keepChecking ? true : false,
+      runtimeConfigError: "",
     });
 
     return normalized;
@@ -214,9 +216,9 @@ Page({
   },
 
   normalizeHomeEntryPath(value) {
-    return String(value || "pages/index/index")
+    return String(value || "")
       .trim()
-      .replace(/^\/+/, "") || "pages/index/index";
+      .replace(/^\/+/, "");
   },
 
   shouldStayOnPoseHome(presentationState) {
@@ -322,8 +324,8 @@ Page({
     }
 
     const hasAuditReady = Boolean(app && app.globalData && app.globalData.auditConfigReady);
-    if (!hasAuditReady && !bypassFromToken && app && typeof app.ensureAuditConfig === "function") {
-      this.setData({ auditChecking: true });
+    if (!bypassFromToken && app && typeof app.ensureAuditConfig === "function") {
+      this.setData({ auditChecking: !hasAuditReady });
       try {
         await app.ensureAuditConfig();
       } catch (error) {
@@ -331,6 +333,10 @@ Page({
       }
     }
 
+    if (app && app.globalData && !app.globalData.auditConfigReady) {
+      this.setData({ auditChecking: true, runtimeConfigError: "页面暂时无法加载，请重试" });
+      return;
+    }
     this.applyRuntimeConfig(this.readRuntimeConfig());
     const presentationState = this.applyPagePresentation();
     if (!this.data.serviceMissing && app && typeof app.ensureBackendReady === "function") {
@@ -395,6 +401,17 @@ Page({
     this.stopTagsRefreshTimer();
     this.stopViewFlushTimer();
     this.flushViewCounts();
+  },
+
+  async retryRuntimeConfig() {
+    if (this._retryingRuntimeConfig) return;
+    this._retryingRuntimeConfig = true;
+    this.setData({ runtimeConfigError: "" });
+    try {
+      await this.onShow();
+    } finally {
+      this._retryingRuntimeConfig = false;
+    }
   },
 
   onUnload() {
