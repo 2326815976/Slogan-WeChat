@@ -1331,6 +1331,7 @@ function normalizeAdminUserRow(row, currentUserId) {
     displayName,
     role,
     roleText: role === "admin" ? "管理员" : "普通用户",
+    adminNote: String(source.adminNote || source.admin_note || ""),
     isDisabled,
     statusText: isDisabled ? "已禁用" : "正常",
     disabledAtText: formatCompactDateTime(disabledAt),
@@ -2665,6 +2666,15 @@ Page({
       this.data.userActionLoading
     ) return;
     void this.refreshAdminUsersSection({ silent: false, stopPullDown: false });
+  },
+
+  onAdminUserNoteSaved(event) {
+    const { userId, note } = event.detail;
+    this.setData({
+      usersList: this.data.usersList.map((item) =>
+        item.id === userId ? Object.assign({}, item, { adminNote: note }) : item
+      ),
+    });
   },
 
   async onToggleAdminUserDisabled(e) {

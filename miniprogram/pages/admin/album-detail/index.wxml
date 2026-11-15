@@ -16,19 +16,7 @@
   </view>
 
   <view wx:elif="{{authDenied}}" class="main-content">
-    <view class="header-section">
-      <view class="header-main">
-        <view class="header-info">
-          <text class="album-title">{{isSystemAlbum ? '公共图库管理' : ((album && album.title) || '空间管理')}}</text>
-          <text class="album-subtitle">管理员权限校验未通过</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="auth-tip">
-      <text class="auth-tip__title">无权访问</text>
-      <text class="auth-tip__desc">{{authErrorMessage || '请先使用管理员账号登录后再打开该页面'}}</text>
-    </view>
+    <admin-access-denied />
   </view>
 
   <view wx:else class="main-content">

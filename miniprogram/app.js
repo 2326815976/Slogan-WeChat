@@ -621,7 +621,7 @@ App({
       saveCachedRuntimeConfig(normalized);
     }
 
-    if ((!options || options.notify !== false) && markReady) {
+    if (!options || options.notify !== false) {
       this.notifyRuntimeConfigChange(normalized);
     }
 
@@ -777,15 +777,19 @@ App({
         return this.applyRuntimeConfig(runtimeConfig, { notify: true, persistCache: true });
       })
       .catch((error) => {
-        // 本次会话已确认的配置可以继续使用，失败不延长刷新有效期。
-        if (this.globalData.auditConfigReady) {
-          return this.globalData.runtimeConfig;
-        }
         const cached = loadCachedRuntimeConfig();
-        const fallback = cached || buildRuntimeConfigPreset("standard");
+        // 过期配置不能继续开放菜单；保留文案，但等待下次成功刷新再恢复入口。
+        const previous = this.globalData.runtimeConfig || cached || buildRuntimeConfigPreset("standard");
+        const fallback = Object.assign({}, previous, {
+          tabBarItems: [],
+          managedPageAccessMap: Object.keys(previous.managedPageAccessMap || {}).reduce((map, key) => {
+            map[key] = Object.assign({}, previous.managedPageAccessMap[key], { publishState: "offline" });
+            return map;
+          }, {}),
+        });
         const applied = this.applyRuntimeConfig(fallback, {
-          notify: false,
-          persistCache: Boolean(cached),
+          notify: true,
+          persistCache: false,
           markFetchedAt: false,
           markReady: false,
         });

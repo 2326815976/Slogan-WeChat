@@ -210,6 +210,11 @@ Component({
     },
 
     applyRuntimeConfig(runtimeConfig) {
+      const app = typeof getApp === "function" ? getApp() : null;
+      if (!app || !app.globalData || !app.globalData.auditConfigReady) {
+        this.setData({ runtimeConfigReady: false, visible: false, list: [] });
+        return;
+      }
       const normalized = normalizeRuntimeConfig(runtimeConfig);
       const nextList = hydrateTabBarItems(normalized, this.data.isLoggedIn);
 
@@ -219,7 +224,6 @@ Component({
         list: nextList,
       });
 
-      const app = typeof getApp === "function" ? getApp() : null;
       if (app && typeof app.getPagePresentation === "function") {
         this.applyPresentation(app.getPagePresentation());
         return;

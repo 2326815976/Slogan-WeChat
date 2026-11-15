@@ -1,0 +1,10 @@
+.access-denied { min-height: 65vh; display: flex; align-items: center; justify-content: center; padding: 40rpx 16rpx; box-sizing: border-box; }
+.access-denied__card { width: 100%; max-width: 640rpx; box-sizing: border-box; padding: 52rpx 36rpx; border-radius: 40rpx; border: 2rpx solid rgba(93, 64, 55, .1); background: rgba(255, 255, 255, .85); box-shadow: 0 16rpx 48rpx rgba(93, 64, 55, .08); text-align: center; }
+.access-denied__icon { width: 136rpx; height: 136rpx; margin: 0 auto 36rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255, 200, 87, .2); }
+.access-denied__icon image { width: 56rpx; height: 56rpx; }
+.access-denied__eyebrow { display: block; margin-bottom: 20rpx; color: #8d6e63; font-size: 22rpx; letter-spacing: 3rpx; }
+.access-denied__title { display: block; color: #5d4037; font-size: 36rpx; font-weight: 700; }
+.access-denied__description { display: block; margin-top: 24rpx; color: #8d6e63; font-size: 26rpx; line-height: 1.9; }
+.access-denied__button { margin: 40rpx 0 0; padding: 24rpx 16rpx; border-radius: 999rpx; background: #ffc857; color: #5d4037; font-size: 28rpx; font-weight: 600; line-height: 1.5; }
+.access-denied__button::after { border: none; }
+.access-denied__button--active { background: #ffd477; }

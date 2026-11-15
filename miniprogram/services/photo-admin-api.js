@@ -859,6 +859,19 @@ async function deleteAdminUser(userId) {
   return assertAdminMutationPayload(payload, "删除用户失败");
 }
 
+async function updateAdminUserNote(userId, note) {
+  await requireAdminSession();
+  const id = String(userId || "").trim();
+  const adminNote = String(note || "").replace(/\r\n/g, "\n").trim();
+  if (!id) throw new Error("用户 ID 非法");
+  if (adminNote.length > 500) throw new Error("备注最多 500 个字符");
+  const payload = await requestJson(`/api/admin/users/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    data: { adminNote: adminNote || null },
+  });
+  return assertAdminMutationPayload(payload, "保存用户备注失败");
+}
+
 async function runAdminMaintenanceTasks() {
   await requireAdminSession();
   const response = await requestJson("/api/maintenance", {
@@ -2967,6 +2980,7 @@ module.exports = {
   requireAdminSession,
   getAdminDashboardStats,
   listAdminUsers,
+  updateAdminUserNote,
   toggleAdminUserDisabled,
   deleteAdminUser,
   runAdminMaintenanceTasks,

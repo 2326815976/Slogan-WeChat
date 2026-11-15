@@ -4,6 +4,7 @@
       <view class="empty-box">正在读取页面管理数据...</view>
     </view>
 
+    <admin-access-denied wx:elif="{{authDenied}}" />
     <view class="panel-card" wx:elif="{{!pageSections.length}}">
       <view class="empty-box">当前没有可管理的页面。</view>
     </view>

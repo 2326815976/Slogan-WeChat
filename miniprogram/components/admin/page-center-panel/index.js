@@ -1284,6 +1284,7 @@ Component({
   data: {
     safeTop: 0,
     loading: true,
+    authDenied: false,
     savingKey: "",
     noticeType: "",
     noticeText: "",
@@ -1370,13 +1371,15 @@ Component({
   },
 
   async bootstrap() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, authDenied: false });
     try {
       await requireAdminSession();
       await this.loadOverview();
     } catch (error) {
-      this.setData({ loading: false });
-      this.showNotice("error", readErrorMessage(error, "加载页面管理失败"));
+      const message = readErrorMessage(error, "加载页面管理失败");
+      const authDenied = /无权访问|未登录|仅管理员/.test(message);
+      this.setData({ loading: false, authDenied });
+      if (!authDenied) this.showNotice("error", message);
     }
   },
 

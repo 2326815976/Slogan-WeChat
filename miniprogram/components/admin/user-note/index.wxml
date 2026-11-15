@@ -1,0 +1,20 @@
+<view class="note-row">
+  <text class="note-label">管理员备注</text>
+  <text class="note-value">{{note || '暂无备注'}}</text>
+</view>
+<button class="note-edit" bindtap="openEditor" disabled="{{disabled || saving}}">编辑备注</button>
+<root-portal wx:if="{{open}}">
+<view class="note-mask" bindtap="closeEditor">
+  <view class="note-dialog" catchtap="stopTap">
+    <text class="note-title">编辑用户备注</text>
+    <text class="note-name">{{userName}}</text>
+    <textarea class="note-input" value="{{text}}" maxlength="500" bindinput="onInput" disabled="{{saving}}" placeholder="添加用户备注，仅管理员可见" cursor-spacing="80" />
+    <view class="note-meta"><text>留空可清除备注</text><text>{{text.length}}/500</text></view>
+    <text wx:if="{{error}}" class="note-error">{{error}}</text>
+    <view class="note-actions">
+      <button class="note-cancel" bindtap="closeEditor" disabled="{{saving}}">取消</button>
+      <button class="note-save" bindtap="saveNote" disabled="{{saving}}" loading="{{saving}}">保存备注</button>
+    </view>
+  </view>
+</view>
+</root-portal>

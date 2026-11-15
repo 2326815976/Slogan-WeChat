@@ -1,0 +1,10 @@
+<view class="access-denied">
+  <view class="access-denied__card">
+    <view class="access-denied__icon"><image src="/images/icons/lock-muted.svg" mode="aspectFit" /></view>
+    <text class="access-denied__eyebrow">拾光谣 · 管理空间</text>
+    <text class="access-denied__title">这里需要管理员权限</text>
+    <text class="access-denied__description">当前账号暂时无法访问此页面。
+你可以返回个人中心，继续查看自己的拾光记录。</text>
+    <button class="access-denied__button" bindtap="goToProfile" hover-class="access-denied__button--active">返回个人中心</button>
+  </view>
+</view>

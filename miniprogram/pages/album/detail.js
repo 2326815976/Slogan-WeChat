@@ -1354,7 +1354,7 @@ Page({
     );
   },
 
-  async fetchAlbumPhotoPageData(folderId, pageNo) {
+  async fetchAlbumPhotoPageData(folderId, pageNo, retried) {
     const normalizedFolderId = String(folderId || ROOT_FOLDER_ID);
     const nextPageNo = toPageNumber(pageNo, 1);
     const r = await dbRpc("get_album_photo_page", {
@@ -1396,7 +1396,12 @@ Page({
       };
     }
 
-    const rows = Array.isArray(payload.photos) ? payload.photos : [];
+    const rows = Array.isArray(payload.photos) ? payload.photos : null;
+    // 非法响应或首屏总数与列表矛盾时只重试一次，不能把加载异常缓存为空文件夹。
+    if (!rows || (nextPageNo === 1 && rows.length === 0 && readPageTotal(payload, 0) > 0)) {
+      if (!retried) return this.fetchAlbumPhotoPageData(normalizedFolderId, nextPageNo, true);
+      return { errorMessage: "照片暂时未能加载，请重试", folderId: normalizedFolderId, pageNo: nextPageNo };
+    }
     const normalizedRows = rows.map(normalizePhoto);
     const hydratedRows = normalizedRows.length > 0
       ? await hydratePhotoDimensions(normalizedRows)
@@ -1472,10 +1477,9 @@ Page({
       nextData.pendingFolderPhotoIds = nextPendingFolderPhotoIds;
     }
 
-    this.setData(
-      nextData,
-      () => this.applyWaterfallPhotos(selectedPhotos, { preferAppend: !reset })
-    );
+    this.setData(nextData);
+    // 同步提交列表和瀑布流，再结束 loading；渲染回调延迟时也不会出现假空白。
+    this.applyWaterfallPhotos(selectedPhotos, { preferAppend: !reset });
 
     if (hasMore) {
       void this.prefetchAlbumPhotoPage(targetFolderId, pageNo + 1);
@@ -2639,10 +2643,8 @@ Page({
         nextData.pendingFolderPhotoIds = nextPendingFolderPhotoIds;
       }
 
-      this.setData(
-        nextData,
-        () => this.applyWaterfallPhotos(selectedPhotos, { preferAppend: !reset })
-      );
+      this.setData(nextData);
+      this.applyWaterfallPhotos(selectedPhotos, { preferAppend: !reset });
       return true;
     } catch (e) {
       if (ticket !== this.photoLoadTicket) return false;

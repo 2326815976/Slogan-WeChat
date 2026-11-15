@@ -1,9 +1,10 @@
 <view class="page">
   <view class="topbar" style="padding-top: {{safeTop}}px;">
     <view class="topbar-inner">
-      <view class="menu-btn" bindtap="toggleMobileMenu">
+      <view class="menu-btn" wx:if="{{!authDenied}}" bindtap="toggleMobileMenu">
         <text class="menu-btn__text">{{mobileMenuOpen ? "✕" : "≡"}}</text>
       </view>
+      <view class="menu-btn" wx:else bindtap="goBack"><text class="menu-btn__text">‹</text></view>
       <view class="brand" data-key="stats" bindtap="onSelectSection">
         <view class="brand-logo">
           <image class="brand-logo__icon" src="/images/icons/sparkles-brown.svg" mode="aspectFit" />
@@ -61,10 +62,7 @@
         <text class="admin-loading-card__desc">正在同步后台能力，请稍候。</text>
       </view>
 
-      <view class="auth-tip motion-fade-up" wx:if="{{!serviceMissing && !loading && authDenied}}">
-        <text class="auth-title">无权访问</text>
-        <text class="auth-desc">当前账号不是管理员，无法使用后台管理功能。</text>
-      </view>
+      <admin-access-denied wx:if="{{!serviceMissing && !loading && authDenied}}" />
  
       <view wx:if="{{!serviceMissing && !loading && !authDenied}}">
         <view class="notice notice--{{noticeType}} motion-pop-in" wx:if="{{noticeText && activeSection !== 'releases'}}">
@@ -446,6 +444,7 @@
                   </view>
                 </view>
 
+                <user-note user-id="{{item.id}}" user-name="{{item.displayName}}" note="{{item.adminNote}}" disabled="{{userActionLoading || usersRefreshing}}" bind:saved="onAdminUserNoteSaved" />
                 <view class="user-admin-actions" wx:if="{{item.canManage}}">
                   <button
                     class="user-admin-action user-admin-action--primary"
