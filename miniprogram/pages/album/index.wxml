@@ -42,6 +42,7 @@
             wx:key="id"
             style="animation-delay: {{120 + (index % 8) * 35}}ms;"
             data-key="{{item.access_key}}"
+            data-album-title="{{item.title}}"
             data-root-folder-name="{{item.root_folder_name}}"
             bindtap="openAlbum"
           >
@@ -78,6 +79,7 @@
                     hover-class="album-icon-btn--enter-active"
                     catchtap="openAlbum"
                     data-key="{{item.access_key}}"
+                    data-album-title="{{item.title}}"
                     data-album-id="{{item.id}}"
                     data-root-folder-name="{{item.root_folder_name}}"
                     hover-stay-time="80"

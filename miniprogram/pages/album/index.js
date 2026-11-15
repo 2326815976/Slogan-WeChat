@@ -529,6 +529,7 @@ Page({
     if (this.data.unbindingAlbumId) return;
     const dataset = e && e.currentTarget && e.currentTarget.dataset ? e.currentTarget.dataset : {};
     const key = String(dataset.key || "").trim();
+    const albumTitle = String(dataset.albumTitle || "").trim();
     const rootFolderName =
       String(dataset.rootFolderName || "").trim() ||
       getCachedAlbumRootName(key);
@@ -536,7 +537,8 @@ Page({
     const rootParam = rootFolderName
       ? `&rootFolderName=${encodeURIComponent(rootFolderName)}`
       : "";
-    wx.navigateTo({ url: `/pages/album/detail?key=${encodeURIComponent(key)}${rootParam}` });
+    const titleParam = albumTitle ? `&albumTitle=${encodeURIComponent(albumTitle)}` : "";
+    wx.navigateTo({ url: `/pages/album/detail?key=${encodeURIComponent(key)}${rootParam}${titleParam}` });
   },
 
   requestUnbindAlbum(e) {
@@ -669,7 +671,9 @@ Page({
       const rootParam = rootFolderName
         ? `&rootFolderName=${encodeURIComponent(rootFolderName)}`
         : "";
-      wx.navigateTo({ url: `/pages/album/detail?key=${encodeURIComponent(accessKey)}${rootParam}` });
+      const albumTitle = String(data.album.title || "").trim();
+      const titleParam = albumTitle ? `&albumTitle=${encodeURIComponent(albumTitle)}` : "";
+      wx.navigateTo({ url: `/pages/album/detail?key=${encodeURIComponent(accessKey)}${rootParam}${titleParam}` });
     } catch (e) {
       this.setData({ error: String((e && e.message) || "验证失败") });
     } finally {

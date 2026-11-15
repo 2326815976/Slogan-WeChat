@@ -1,6 +1,8 @@
 const { updateAdminUserNote } = require("../../../services/photo-admin-api");
 
 Component({
+  // 让操作按钮参与父级同一行布局，并单向接收管理页已有的按钮、弹窗样式。
+  options: { virtualHost: true, styleIsolation: "apply-shared" },
   properties: {
     userId: String,
     userName: String,

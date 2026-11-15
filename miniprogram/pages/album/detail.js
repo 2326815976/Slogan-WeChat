@@ -86,10 +86,10 @@ function resolveManagedAlbumDetailTitle(runtimeConfig) {
 
 function resolveAlbumHeaderTitle(options) {
   const current = options && typeof options === "object" ? options : {};
+  // 空间标题与根目录标签是不同字段，加载中也不能拿文件夹名称替代标题。
   return String(
     current.albumTitle ||
-      current.rootFolderName ||
-      current.initialRootFolderName ||
+      current.initialAlbumTitle ||
       current.managedTitle ||
       "专属返图空间"
   ).trim();
@@ -394,11 +394,6 @@ function readWindowWidth() {
   return 375;
 }
 
-function convertRpxToPx(value) {
-  const windowWidth = Math.max(readWindowWidth(), 320);
-  return Math.round((Number(value || 0) * windowWidth) / 750);
-}
-
 function computeToolbarStickyTop(safeTop) {
   const unit = Math.max(readWindowWidth(), 320) / 750;
   const headerInnerHeight = 112 * unit; // app-header simple 高度
@@ -408,7 +403,8 @@ function computeToolbarStickyTop(safeTop) {
 }
 
 function computeAlbumSwitchOverlayTop(safeTop) {
-  return computeToolbarStickyTop(safeTop) + convertRpxToPx(92);
+  // 从页头下沿覆盖内容，避免间距缩小、通知隐藏或标签吸顶时露出标签。
+  return computeToolbarStickyTop(safeTop);
 }
 
 function splitWaterfallColumns(list, options) {
@@ -573,6 +569,7 @@ Page({
     total: 0,
 
     album: null,
+    initialAlbumTitle: "",
     managedTitle: "专属返图空间",
     headerTitle: "",
     pageScaffoldReady: false,
@@ -704,6 +701,13 @@ Page({
     }
 
     const key = String((options && options.key) || "").trim().toUpperCase();
+    const rawAlbumTitle = String((options && options.albumTitle) || "").trim();
+    let initialAlbumTitle = rawAlbumTitle;
+    try {
+      initialAlbumTitle = decodeURIComponent(rawAlbumTitle).trim();
+    } catch (error) {
+      // 兼容名称包含未编码百分号的链接。
+    }
     const cachedRootFolderName = getCachedAlbumRootName(key);
     const rawRootFolderName = String(
       (options && (options.rootFolderName || options.root_folder_name || options.root)) || ""
@@ -729,8 +733,9 @@ Page({
       backendReady,
       backendReconnecting,
       key,
+      initialAlbumTitle,
       managedTitle,
-      headerTitle: serviceMissing ? (cachedRootFolderName || initialRootFolderName || managedTitle) : "",
+      headerTitle: initialAlbumTitle || (serviceMissing ? managedTitle : ""),
       pageScaffoldReady: Boolean(serviceMissing),
       welcomeStorageKey: `album_welcome_seen_${key}`,
       welcomeEggStorageKey: `album_welcome_egg_seen_${key}`,
@@ -748,8 +753,7 @@ Page({
           managedTitle: nextManagedTitle,
           headerTitle: resolveAlbumHeaderTitle({
             albumTitle: this.data.album && this.data.album.title,
-            rootFolderName: this.data.rootFolderName,
-            initialRootFolderName: this.data.initialRootFolderName,
+            initialAlbumTitle: this.data.initialAlbumTitle,
             managedTitle: nextManagedTitle,
           }),
         });
@@ -794,8 +798,7 @@ Page({
       managedTitle,
       headerTitle: resolveAlbumHeaderTitle({
         albumTitle: this.data.album && this.data.album.title,
-        rootFolderName: this.data.rootFolderName,
-        initialRootFolderName: this.data.initialRootFolderName,
+        initialAlbumTitle: this.data.initialAlbumTitle,
         managedTitle,
       }),
     });
@@ -2240,8 +2243,7 @@ Page({
             freezeEnabled: normalizedAlbum && normalizedAlbum.enable_freeze !== false,
             headerTitle: resolveAlbumHeaderTitle({
               albumTitle: String((normalizedAlbum && normalizedAlbum.title) || "").trim(),
-              rootFolderName,
-              initialRootFolderName: this.data.initialRootFolderName,
+              initialAlbumTitle: this.data.initialAlbumTitle,
               managedTitle: this.data.managedTitle,
             }),
             pageScaffoldReady: true,

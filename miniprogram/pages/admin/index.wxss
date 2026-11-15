@@ -967,6 +967,10 @@ button::after {
   gap: 10rpx;
 }
 
+.user-admin-contact__value--note {
+  white-space: pre-wrap;
+}
+
 .user-admin-action {
   flex: 1 1 0;
   min-width: 0;
@@ -990,6 +994,12 @@ button::after {
 
 .user-admin-action--primary {
   background: linear-gradient(135deg, #ffc857 0%, #ffcf70 100%);
+  color: #5d4037;
+}
+
+.user-admin-action--ghost {
+  border: 2rpx solid rgba(93, 64, 55, 0.2);
+  background: #ffffff;
   color: #5d4037;
 }
 

@@ -442,11 +442,16 @@
                     <text class="user-admin-contact__label">微信号</text>
                     <text class="user-admin-contact__value">{{item.wechat || '未填写'}}</text>
                   </view>
+                  <view class="user-admin-contact__row">
+                    <text class="user-admin-contact__label">管理员备注</text>
+                    <text class="user-admin-contact__value user-admin-contact__value--note">{{item.adminNote || '暂无备注'}}</text>
+                  </view>
                 </view>
 
-                <user-note user-id="{{item.id}}" user-name="{{item.displayName}}" note="{{item.adminNote}}" disabled="{{userActionLoading || usersRefreshing}}" bind:saved="onAdminUserNoteSaved" />
-                <view class="user-admin-actions" wx:if="{{item.canManage}}">
+                <view class="user-admin-actions">
+                  <user-note user-id="{{item.id}}" user-name="{{item.displayName}}" note="{{item.adminNote}}" disabled="{{userActionLoading || usersRefreshing}}" bind:saved="onAdminUserNoteSaved" />
                   <button
+                    wx:if="{{item.canManage}}"
                     class="user-admin-action user-admin-action--primary"
                     data-id="{{item.id}}"
                     bindtap="onToggleAdminUserDisabled"
@@ -455,6 +460,7 @@
                     {{userActionLoading && userActionTargetId === item.id ? "处理中..." : (item.isDisabled ? "恢复账号" : "禁用账号")}}
                   </button>
                   <button
+                    wx:if="{{item.canManage}}"
                     class="user-admin-action user-admin-action--danger"
                     data-id="{{item.id}}"
                     bindtap="onPromptDeleteAdminUser"
@@ -464,7 +470,7 @@
                   </button>
                 </view>
 
-                <text class="user-admin-card__hint" wx:else>
+                <text class="user-admin-card__hint" wx:if="{{!item.canManage}}">
                   {{item.isCurrentAdmin ? "当前登录管理员不支持在此处进行禁用或删除操作。" : "管理员账号默认受保护，不支持后台禁用或删除。"}}
                 </text>
               </view>
