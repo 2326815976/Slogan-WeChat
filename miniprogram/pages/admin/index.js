@@ -132,6 +132,10 @@ const ADMIN_SECTION_META = {
     title: "专属空间管理 💝",
     desc: "管理专属返图空间",
   },
+  shiguang: {
+    title: "拾光空间管理",
+    desc: "",
+  },
   about: {
     title: "关于设置 ℹ️",
     desc: "管理用户端关于页面展示信息",
@@ -1953,7 +1957,7 @@ Page({
     todayDateText: getTodayDateText(),
   },
 
-  onLoad() {
+  onLoad(options = {}) {
     const app = getApp();
     const globalData = app && app.globalData ? app.globalData : {};
     const safeTop = Number(globalData.statusBarHeight || 0);
@@ -1982,6 +1986,8 @@ Page({
         galleryUploadProgressTotal: 0,
       } : {}
     ));
+    // 兼容旧拾光管理链接，统一回到保留侧栏的后台面板。
+    if (options.section === "shiguang") this.syncSectionMeta("shiguang");
   },
 
   onShow() {
@@ -2089,7 +2095,6 @@ Page({
       e && e.currentTarget && e.currentTarget.dataset
         ? String(e.currentTarget.dataset.key || "")
         : "";
-    if (key === 'shiguang') { wx.navigateTo({ url: '/pages/admin/shiguang/index' }); return; }
     if (!ADMIN_SECTION_META[key]) {
       return;
     }

@@ -1684,6 +1684,10 @@
           <page-center-panel channel="miniprogram" embedded="{{true}}" />
         </block>
 
+        <block wx:if="{{activeSection === 'shiguang'}}">
+          <shiguang-manager id="shiguangManager" />
+        </block>
+
         <block wx:if="{{activeSection === 'albums'}}">
           <view class="album-panel motion-fade-up">
             <view class="booking-toolbar album-toolbar">

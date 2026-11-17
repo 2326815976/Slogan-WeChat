@@ -4,6 +4,7 @@
     "user-note": "/components/admin/user-note/index",
     "map-picker": "/components/map-picker/index",
     "gallery-manager": "/components/admin/gallery-manager/index",
-    "page-center-panel": "/components/admin/page-center-panel/index"
+    "page-center-panel": "/components/admin/page-center-panel/index",
+    "shiguang-manager": "/pages/admin/components/shiguang-manager/index"
   }
 }

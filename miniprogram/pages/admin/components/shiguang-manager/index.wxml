@@ -1,0 +1,72 @@
+<view class="album-panel sg-admin-panel">
+  <view wx:if="{{error && !formOpen && !member}}" class="sg-admin-error">{{error}}</view>
+  <block wx:if="{{authorized}}">
+    <view class="booking-toolbar-actions booking-toolbar-actions--right sg-admin-toolbar">
+      <button class="booking-pill-btn booking-pill-btn--primary" disabled="{{busy}}" bindtap="open">＋ 添加空间</button>
+    </view>
+    <view wx:if="{{!items.length}}" class="sg-admin-empty">{{loading ? '加载中…' : '暂无拾光空间'}}</view>
+    <view class="sg-admin-space" wx:for="{{items}}" wx:key="id">
+      <view class="sg-admin-cover"><image src="{{item.coverUrl}}" mode="aspectFill"/><text class="sg-admin-status {{item.enabled && !item.deletedAt ? 'is-enabled' : ''}}">{{item.deletedAt ? '已删除' : item.enabled ? '启用中' : '已禁用'}}</text></view>
+      <view class="sg-admin-body">
+        <view class="sg-admin-title">{{item.name}}</view><view class="sg-admin-id">空间 ID · {{item.id}}</view>
+        <view class="sg-admin-members">
+          <view wx:for="{{item.members}}" wx:for-item="memberRow" wx:key="userId" class="sg-admin-member">
+            <view class="sg-admin-member-name"><text class="sg-admin-muted">{{memberRow.role === 'boy' ? '男生' : '女生'}}</text><text>{{memberRow.name}}</text></view>
+            <button wx:if="{{!item.deletedAt}}" class="booking-pill-btn booking-pill-btn--ghost" disabled="{{busy}}" data-space="{{item.id}}" data-user="{{memberRow.userId}}" bindtap="editMember">编辑资料</button>
+          </view>
+        </view>
+        <view class="sg-admin-id">专属返图空间 · {{item.albumId}}</view>
+        <view wx:if="{{!item.deletedAt}}" class="sg-admin-actions">
+          <button class="booking-pill-btn booking-pill-btn--primary" disabled="{{busy}}" data-id="{{item.id}}" bindtap="open">编辑空间</button>
+          <button class="booking-pill-btn booking-pill-btn--danger" disabled="{{busy}}" data-id="{{item.id}}" bindtap="remove">删除空间</button>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{page > 0 || hasMore}}" class="booking-pagination">
+      <button class="booking-page-btn booking-page-btn--ghost" disabled="{{!page || loading || busy}}" bindtap="previous">上一页</button>
+      <text class="booking-page-indicator">第 {{page + 1}} 页</text>
+      <button class="booking-page-btn booking-page-btn--ghost" disabled="{{!hasMore || loading || busy}}" bindtap="next">下一页</button>
+    </view>
+  </block>
+</view>
+
+<!-- 弹窗提升到页面根节点，避免后台 scroll-view 裁切遮罩。 -->
+<root-portal wx:if="{{formOpen || member}}">
+  <view class="booking-modal-mask sg-admin-mask" bindtap="cancel" catchtouchmove="stopTap">
+    <view class="booking-modal booking-modal--form album-create-modal sg-admin-dialog" catchtap="stopTap">
+      <view class="booking-modal__head">
+        <text class="booking-modal__title">{{member ? '编辑空间成员资料' : editing ? '编辑拾光空间' : '创建拾光空间'}}</text>
+        <view class="booking-modal__close" aria-role="button" aria-label="关闭" bindtap="cancel"><text>✕</text></view>
+      </view>
+      <scroll-view scroll-y="true" class="sg-admin-form-scroll">
+        <view class="booking-modal__body sg-admin-form-body">
+          <block wx:if="{{formOpen}}">
+            <view class="booking-modal__field"><text class="booking-modal__label">名称</text><input class="booking-modal__input" value="{{form.name}}" maxlength="100" disabled="{{busy}}" data-key="name" bindinput="input"/></view>
+            <view class="booking-modal__field"><text class="booking-modal__label">封面</text>
+              <image wx:if="{{form.coverUrl}}" src="{{form.coverUrl}}" class="sg-admin-cover-preview" mode="aspectFill"/>
+              <button class="booking-pill-btn booking-pill-btn--ghost sg-admin-upload" disabled="{{busy}}" bindtap="image">{{form.cover ? '更换封面' : '上传封面'}}</button>
+            </view>
+            <view class="sg-admin-setting"><text class="booking-modal__label">启用空间</text><switch color="#FFC857" checked="{{form.enabled}}" disabled="{{busy}}" bindchange="enabled"/></view>
+            <view class="booking-modal__field"><text class="booking-modal__label">信件</text><textarea class="booking-modal__textarea" maxlength="20000" value="{{form.letter}}" disabled="{{busy}}" data-key="letter" bindinput="input"/></view>
+            <view class="booking-modal__field"><text class="booking-modal__label">绑定专属返图空间</text><picker range="{{options.albums}}" range-key="title" disabled="{{busy}}" bindchange="album"><view class="booking-modal__input sg-admin-select">{{form.albumName || '请选择专属返图空间'}}</view></picker></view>
+            <block wx:if="{{!editing}}">
+              <view class="booking-modal__field"><text class="booking-modal__label">筛选用户</text><input class="booking-modal__input" placeholder="手机号、备注名" value="{{query}}" bindinput="search"/></view>
+              <view class="booking-modal__field"><text class="booking-modal__label">男生</text><picker range="{{available}}" range-key="label" disabled="{{busy}}" data-role="boy" bindchange="user"><view class="booking-modal__input sg-admin-select">{{form.boyName || '请选择用户'}}</view></picker></view>
+              <view class="booking-modal__field"><text class="booking-modal__label">女生</text><picker range="{{available}}" range-key="label" disabled="{{busy}}" data-role="girl" bindchange="user"><view class="booking-modal__input sg-admin-select">{{form.girlName || '请选择用户'}}</view></picker></view>
+            </block>
+          </block>
+          <block wx:if="{{member}}">
+            <view class="booking-modal__field"><text class="booking-modal__label">名称</text><input class="booking-modal__input" value="{{member.name}}" maxlength="100" disabled="{{busy}}" bindinput="memberName"/></view>
+            <view class="booking-modal__field"><text class="booking-modal__label">头像</text>
+              <image wx:if="{{member.avatarUrl}}" src="{{member.avatarUrl}}" class="sg-admin-avatar" mode="aspectFill"/>
+              <button class="booking-pill-btn booking-pill-btn--ghost sg-admin-upload" disabled="{{busy}}" data-member="1" bindtap="image">更换头像</button>
+            </view>
+          </block>
+        </view>
+      </scroll-view>
+      <view wx:if="{{error}}" class="sg-admin-error">{{error}}</view>
+      <button wx:if="{{formOpen}}" class="booking-modal__submit album-create-modal__submit" disabled="{{busy || !form.cover}}" loading="{{busy}}" bindtap="save">保存空间</button>
+      <button wx:else class="booking-modal__submit album-create-modal__submit" disabled="{{busy}}" loading="{{busy}}" bindtap="saveMember">保存资料</button>
+    </view>
+  </view>
+</root-portal>
