@@ -1,0 +1,14 @@
+<template name="space-content">
+  <view class="sg-content {{summary.publishState === 'online' ? 'sg-bottom-space' : ''}}">
+    <view wx:if="{{error}}" class="sg-error">{{error}}</view>
+    <view wx:if="{{summary}}">
+      <view class="sg-card"><image src="{{summary.space.coverUrl}}" mode="aspectFill" class="sg-cover"/><view class="sg-row" style="margin-top:28rpx"><view class="sg-member" wx:for="{{summary.space.members}}" wx:key="userId"><image wx:if="{{item.avatarUrl}}" class="sg-avatar" src="{{item.avatarUrl}}" mode="aspectFill"/><text wx:else class="sg-avatar sg-center">♡</text><text>{{item.name}}</text><text class="sg-muted" data-key="mood" bindtap="open">{{item.todayMood}}</text><text wx:if="{{item.userId === summary.userId}}" class="sg-link" bindtap="editProfile">编辑我的资料</text></view></view></view>
+      <view wx:if="{{summary.space.letter}}" class="sg-card" bindtap="toggleLetter"><view class="sg-title">写给我们的信 {{letterOpen ? '⌃' : '⌄'}}</view><view wx:if="{{letterOpen}}" class="sg-text">{{summary.space.letter}}</view></view>
+      <view class="sg-grid"><view class="sg-card" wx:for="{{modules}}" wx:key="key" data-key="{{item.key}}" bindtap="open"><view style="font-size:44rpx">{{item.icon}}</view><view class="sg-title">{{item.label}}</view><view wx:if="{{item.key === 'album'}}" class="sg-muted" style="word-break:break-all">{{summary.space.albumId}}</view></view></view>
+    </view><view wx:else class="sg-card">正在打开我们的拾光…</view>
+  </view>
+</template>
+<view class="sg-page">
+  <block wx:if="{{summary.publishState !== 'beta'}}"><primary-page-shell title="{{summary.space.name || '拾光空间'}}" subtitle="把日子，慢慢写成我们的故事"/><scroll-view class="sg-scroll" scroll-y><template is="space-content" data="{{summary,error,letterOpen,modules}}"/></scroll-view><app-bottom-nav currentPath="pages/shiguang/index"/></block>
+  <secondary-page-shell wx:else title="{{summary.space.name}}" fallbackRoute="/pages/profile/beta/index"><template is="space-content" data="{{summary,error,letterOpen,modules}}"/></secondary-page-shell>
+</view>

@@ -14,7 +14,10 @@ function normalizeMiniProgramRouteUrl(value) {
   if (!raw) {
     return "";
   }
-  const [path, query = ""] = raw.split("?");
+  // 与一级页头一致，避免按需编译依赖缺失的数组解构辅助模块。
+  const parts = raw.split("?");
+  const path = parts[0];
+  const query = parts[1] || "";
   const normalizedPath = normalizeMiniProgramRoutePath(path);
   if (!normalizedPath) {
     return "";

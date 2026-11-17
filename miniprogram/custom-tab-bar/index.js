@@ -10,9 +10,11 @@ const {
   resolvePagePresentationState,
 } = require("../utils/page-presentation");
 
+const shiguang = require('../services/shiguang');
 const TAB_SWITCH_TIMEOUT_MS = 3000;
 
 const ICON_PATH_MAP = {
+  hearts: { normal: '/images/tab/hearts.svg', active: '/images/tab/hearts-active.svg' },
   home: {
     normal: "/images/tab/house.svg",
     active: "/images/tab/house-active.svg",
@@ -36,7 +38,7 @@ const ICON_PATH_MAP = {
 };
 
 function hydrateTabBarItems(runtimeConfig, isLoggedIn) {
-  return getDisplayedTabBarItems(runtimeConfig, isLoggedIn).map((item) => {
+  return shiguang.withSpaceTab(getDisplayedTabBarItems(runtimeConfig, isLoggedIn), isLoggedIn).map((item) => {
     const iconConfig = ICON_PATH_MAP[item.iconKey] || ICON_PATH_MAP.profile;
     return {
       key: item.key,
@@ -233,9 +235,6 @@ Component({
 
     applyLoginState(isLoggedIn) {
       const nextLoggedIn = Boolean(isLoggedIn);
-      if (nextLoggedIn === Boolean(this.data.isLoggedIn)) {
-        return;
-      }
       const normalized = normalizeRuntimeConfig(this.data.runtimeConfig);
       const nextList = hydrateTabBarItems(normalized, nextLoggedIn);
       this.setData({
@@ -254,7 +253,9 @@ Component({
       try {
         const session = await getSession();
         const user = extractSessionUser(session);
+        await shiguang.refreshMembership();
         this.applyLoginState(Boolean(user && user.id));
+        shiguang.preferSpaceEntry();
       } catch (error) {
         const errorCode = String((error && error.code) || "").trim();
         if (
@@ -355,7 +356,8 @@ Component({
         }
         revertSelection();
       }, TAB_SWITCH_TIMEOUT_MS);
-      wx.switchTab({
+      const navigate = path === 'pages/shiguang/index' ? wx.reLaunch : wx.switchTab;
+      navigate({
         url: `/${path}`,
         success: () => {
           this.releaseSwitchLock();

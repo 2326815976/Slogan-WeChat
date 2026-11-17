@@ -158,6 +158,7 @@ const ADMIN_NAV_ITEMS = [
   { key: "schedule", label: "档期管理", desc: "锁档日期", icon: "🗓️" },
   { key: "gallery", label: "照片墙管理", desc: "公开图集", icon: "🖼️" },
   { key: "albums", label: "专属空间管理", desc: "返图空间", icon: "💝" },
+  { key: "shiguang", label: "拾光空间管理", desc: "两人拾光空间", icon: "💕" },
   { key: "about", label: "关于设置", desc: "作者信息", icon: "ℹ️" },
   { key: "releases", label: "发布版本", desc: "安装包发布", icon: "📦" },
   { key: "miniprogramPages", label: "小程序页面管理", desc: "小程序页面发布与入口", icon: "📱" },
@@ -2088,6 +2089,7 @@ Page({
       e && e.currentTarget && e.currentTarget.dataset
         ? String(e.currentTarget.dataset.key || "")
         : "";
+    if (key === 'shiguang') { wx.navigateTo({ url: '/pages/admin/shiguang/index' }); return; }
     if (!ADMIN_SECTION_META[key]) {
       return;
     }

@@ -697,7 +697,7 @@ async function requestJson(path, init) {
   const sendRequestWithCookieRetry = async () => {
     let { response: res, statusCode, parsedData } = await sendRequest();
     const hasStoredCookie = Boolean(getStoredCookie());
-    const shouldRetryWithCleanCookie = hasStoredCookie && (statusCode === 401 || statusCode === 403);
+    const shouldRetryWithCleanCookie = !options.skipAuthRetry && hasStoredCookie && (statusCode === 401 || statusCode === 403);
     if (shouldRetryWithCleanCookie) {
       clearStoredCookie();
       const retried = await sendRequest();

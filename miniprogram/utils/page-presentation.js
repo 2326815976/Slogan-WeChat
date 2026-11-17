@@ -102,7 +102,7 @@ function resolvePagePresentationState(input, pagePath, runtimeConfig) {
     isBeta,
     showBack: isStandalone,
     preferFallback: isStandalone,
-    hasBottomTabbar: !isStandalone && isRegisteredTabBarPage,
+    hasBottomTabbar: !isStandalone && (isRegisteredTabBarPage || currentPagePath === 'pages/shiguang/index'),
     pageFallbackRoute: presentation.fallbackRoute,
     pageFallbackTab: presentation.fallbackTab,
     pageKey: isStandalone ? presentation.pageKey : "",

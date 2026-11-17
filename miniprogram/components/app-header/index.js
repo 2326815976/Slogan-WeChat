@@ -11,7 +11,10 @@ function normalizeMiniProgramRouteUrl(value) {
   if (!raw) {
     return "";
   }
-  const [path, query = ""] = raw.split("?");
+  // 使用数组索引，避免开发者工具按需编译遗漏数组解构的 Babel 辅助模块。
+  const parts = raw.split("?");
+  const path = parts[0];
+  const query = parts[1] || "";
   const normalizedPath = normalizeMiniProgramRoutePath(path);
   if (!normalizedPath) {
     return "";

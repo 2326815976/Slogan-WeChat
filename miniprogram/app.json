@@ -17,6 +17,7 @@
     "pages/profile/delete-account/index"
   ],
   "subpackages": [
+    { "root": "pages/shiguang", "pages": ["index", "entries", "tickets", "profile"] },
     {
       "root": "pages/admin",
       "pages": [
@@ -24,7 +25,8 @@
         "beta/index",
         "page-center/index",
         "web-preview/index",
-        "album-detail/index"
+        "album-detail/index",
+        "shiguang/index"
       ]
     }
   ],
