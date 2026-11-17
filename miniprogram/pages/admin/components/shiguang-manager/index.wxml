@@ -1,8 +1,10 @@
-<view class="album-panel sg-admin-panel">
+<view class="sg-admin-panel">
   <view wx:if="{{error && !formOpen && !member}}" class="sg-admin-error">{{error}}</view>
   <block wx:if="{{authorized}}">
-    <view class="booking-toolbar-actions booking-toolbar-actions--right sg-admin-toolbar">
-      <button class="booking-pill-btn booking-pill-btn--primary" disabled="{{busy}}" bindtap="open">＋ 添加空间</button>
+    <view class="booking-toolbar album-toolbar">
+      <view class="booking-toolbar-actions booking-toolbar-actions--right">
+        <button class="booking-pill-btn booking-pill-btn--primary" disabled="{{busy}}" bindtap="open">＋ 添加空间</button>
+      </view>
     </view>
     <view wx:if="{{!items.length}}" class="sg-admin-empty">{{loading ? '加载中…' : '暂无拾光空间'}}</view>
     <view class="sg-admin-space" wx:for="{{items}}" wx:key="id">
@@ -48,9 +50,9 @@
             </view>
             <view class="sg-admin-setting"><text class="booking-modal__label">启用空间</text><switch color="#FFC857" checked="{{form.enabled}}" disabled="{{busy}}" bindchange="enabled"/></view>
             <view class="booking-modal__field"><text class="booking-modal__label">信件</text><textarea class="booking-modal__textarea" maxlength="20000" value="{{form.letter}}" disabled="{{busy}}" data-key="letter" bindinput="input"/></view>
-            <view class="booking-modal__field"><text class="booking-modal__label">绑定专属返图空间</text><picker range="{{options.albums}}" range-key="title" disabled="{{busy}}" bindchange="album"><view class="booking-modal__input sg-admin-select">{{form.albumName || '请选择专属返图空间'}}</view></picker></view>
+            <view class="booking-modal__field"><text class="booking-modal__label">绑定专属返图空间</text><picker range="{{options.albums}}" range-key="label" disabled="{{busy}}" bindchange="album"><view class="booking-modal__input sg-admin-select">{{form.albumName || '请选择专属返图空间'}}</view></picker></view>
             <block wx:if="{{!editing}}">
-              <view class="booking-modal__field"><text class="booking-modal__label">筛选用户</text><input class="booking-modal__input" placeholder="手机号、备注名" value="{{query}}" bindinput="search"/></view>
+              <view class="booking-modal__field"><text class="booking-modal__label">筛选用户</text><input class="booking-modal__input" placeholder="输入用户 ID（支持后 6 位）" value="{{query}}" bindinput="search"/></view>
               <view class="booking-modal__field"><text class="booking-modal__label">男生</text><picker range="{{available}}" range-key="label" disabled="{{busy}}" data-role="boy" bindchange="user"><view class="booking-modal__input sg-admin-select">{{form.boyName || '请选择用户'}}</view></picker></view>
               <view class="booking-modal__field"><text class="booking-modal__label">女生</text><picker range="{{available}}" range-key="label" disabled="{{busy}}" data-role="girl" bindchange="user"><view class="booking-modal__input sg-admin-select">{{form.girlName || '请选择用户'}}</view></picker></view>
             </block>

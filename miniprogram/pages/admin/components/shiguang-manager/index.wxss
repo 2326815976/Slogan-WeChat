@@ -1,6 +1,5 @@
-/* 基础控件复用后台页面的 booking 样式，局部只定义拾光列表布局。 */
+/* 内容直接沿用后台留白，工具栏与控件复用专属空间管理样式。 */
 .sg-admin-panel { color: #5d4037; }
-.sg-admin-toolbar { margin-bottom: 20rpx; }
 .sg-admin-empty { padding: 64rpx 20rpx; text-align: center; color: #8d6e63; font-size: 24rpx; }
 .sg-admin-space { border: 2rpx solid rgba(93,64,55,.12); border-radius: 24rpx; overflow: hidden; margin-bottom: 24rpx; background: #fff; }
 .sg-admin-cover { position: relative; height: 280rpx; background: #fff0d4; }

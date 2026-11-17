@@ -1,5 +1,5 @@
 const sg = require('../../../../services/shiguang');
-const { getSession, extractSessionUser } = require('../../../../services/photo-api');
+const { dbQuery, getSession, extractSessionUser } = require('../../../../services/photo-api');
 const { hasAdminAccess } = require('../../../../utils/admin-access');
 
 Component({
@@ -35,12 +35,29 @@ Component({
     async loadOptions() {
       try {
         const options = await sg.api('admin/shiguang?options=1');
+        // 旧接口的用户文案没有 ID，新旧接口统一展示且避免重复添加。
+        options.users = options.users.map(u => {
+          const prefix = `${u.id.slice(-6)} · `;
+          return { ...u, label: u.label.startsWith(prefix) ? u.label : `${prefix}${u.label}` };
+        });
+        // 云端选项尚未更新时，通过既有管理员查询接口批量补齐空间密钥。
+        const missingLabels = options.albums.filter(a => !a.label);
+        const keys = new Map();
+        if (missingLabels.length) {
+          const result = await dbQuery({
+            table: 'albums', action: 'select', columns: 'id,access_key',
+            filters: [{ column: 'id', operator: 'in', value: missingLabels.map(a => a.id) }],
+          });
+          if (result.error) throw new Error(result.error.message || '获取专属空间密钥失败');
+          (result.data || []).forEach(a => keys.set(a.id, String(a.access_key || '').trim()));
+        }
+        options.albums = options.albums.map(a => ({ ...a, label: a.label || `${a.title} · ${keys.get(a.id) || '未设置密钥'}` }));
         this.setData({ options, available: options.users.filter(u => !u.bound) });
       } catch (e) { this.setData({ error: e.message }); }
     },
     search(e) {
       const query = e.detail.value;
-      this.setData({ query, available: this.data.options.users.filter(u => !u.bound && u.label.toLowerCase().includes(query.trim().toLowerCase())) });
+      this.setData({ query, available: this.data.options.users.filter(u => !u.bound && u.id.toLowerCase().includes(query.trim().toLowerCase())) });
     },
     open(e) {
       if (this.data.busy) return;
@@ -52,7 +69,7 @@ Component({
         form: {
           id: s ? s.id : sg.uuid(), name: s ? s.name : '', cover: s ? s.cover : '', coverUrl: s ? s.coverUrl : '',
           letter: s ? s.letter : '', enabled: s ? s.enabled : true, albumId: s ? s.albumId : '',
-          albumName: album ? album.title : '', boyId: '', girlId: '', boyName: '', girlName: '',
+          albumName: album ? album.label : '', boyId: '', girlId: '', boyName: '', girlName: '',
         },
       });
     },
@@ -60,7 +77,7 @@ Component({
     enabled(e) { this.setData({ 'form.enabled': e.detail.value }); },
     album(e) {
       const a = this.data.options.albums[Number(e.detail.value)];
-      if (a) this.setData({ 'form.albumId': a.id, 'form.albumName': a.title });
+      if (a) this.setData({ 'form.albumId': a.id, 'form.albumName': a.label });
     },
     user(e) {
       const role = e.currentTarget.dataset.role, u = this.data.available[Number(e.detail.value)];
