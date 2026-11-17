@@ -27,8 +27,10 @@ Component({
       this.setData({ loading: true });
       try {
         const result = await sg.api(`admin/shiguang?page=${page}`);
-        const links = await sg.mediaLinks(result.items.map(s => s.cover));
-        this.setData({ items: result.items.map(s => ({ ...s, coverUrl: links[s.cover] || s.cover })), page, hasMore: result.hasMore });
+        // 兼容尚未更新的列表接口，已软删除空间不再展示或请求封面。
+        const items = result.items.filter(s => !s.deletedAt);
+        const links = await sg.mediaLinks(items.map(s => s.cover));
+        this.setData({ items: items.map(s => ({ ...s, coverUrl: links[s.cover] || s.cover })), page, hasMore: result.hasMore });
       } catch (e) { this.setData({ error: e.message }); }
       finally { this.setData({ loading: false }); }
     },
