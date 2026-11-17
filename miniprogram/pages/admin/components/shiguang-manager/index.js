@@ -1,6 +1,7 @@
 const sg = require('../../../../services/shiguang');
 const { dbQuery, getSession, extractSessionUser } = require('../../../../services/photo-api');
 const { hasAdminAccess } = require('../../../../utils/admin-access');
+const { optimizeAlbumCoverPath } = require('../../utils/album-cover');
 
 Component({
   // 接收后台既有按钮、分页和弹窗样式，业务状态保留在组件内。
@@ -95,9 +96,16 @@ Component({
       if (this.data.busy) return;
       this.setData({ busy: true, error: '' });
       try {
-        const path = await sg.chooseImage();
+        const isMember = Boolean(e.currentTarget.dataset.member);
+        let path = await sg.chooseImage();
+        if (!isMember) {
+          // 新建和更换封面均复用专属空间压缩；头像保留原有处理。
+          const optimized = await optimizeAlbumCoverPath(path);
+          path = optimized.path;
+          if (optimized.notice) wx.showToast({ title: optimized.notice, icon: 'none' });
+        }
         const ref = await sg.upload(path, true);
-        this.setData(e.currentTarget.dataset.member ? { 'member.avatar': ref, 'member.avatarUrl': path } : { 'form.cover': ref, 'form.coverUrl': path });
+        this.setData(isMember ? { 'member.avatar': ref, 'member.avatarUrl': path } : { 'form.cover': ref, 'form.coverUrl': path });
       } catch (e) {
         if (!String(e.errMsg || '').includes('cancel')) this.setData({ error: e.message || '图片上传失败' });
       } finally { this.setData({ busy: false }); }
@@ -108,7 +116,7 @@ Component({
       try {
         const f = this.data.form, s = this.data.editing;
         const body = { id: f.id, name: f.name, cover: f.cover, letter: f.letter, enabled: f.enabled, albumId: f.albumId };
-        // 修改空间资料不提交成员 ID，保持成员永久绑定规则。
+        // 修改空间资料不提交成员 ID，已有空间仍不允许换绑。
         if (s) body.version = s.version;
         else { body.boyId = f.boyId; body.girlId = f.girlId; }
         await sg.api(`admin/shiguang${s ? `/${s.id}` : ''}`, s ? 'PUT' : 'POST', body);
@@ -118,12 +126,12 @@ Component({
       finally { this.setData({ busy: false }); }
     },
     async remove(e) {
-      if (this.data.busy || !await sg.confirm('删除后停止双方访问，保留永久成员绑定及全部历史数据。确认删除？')) return;
+      if (this.data.busy || !await sg.confirm('删除后停止双方访问，保留历史数据，两名成员可加入新空间。确认删除？')) return;
       this.setData({ busy: true, error: '' });
       try {
         const s = this.data.items.find(s => s.id === e.currentTarget.dataset.id);
         await sg.api(`admin/shiguang/${s.id}`, 'DELETE', { version: s.version });
-        await this.load(this.data.page);
+        await Promise.all([this.load(this.data.page), this.loadOptions()]);
       } catch (e) { this.setData({ error: e.message }); }
       finally { this.setData({ busy: false }); }
     },
