@@ -1,7 +1,46 @@
-<secondary-page-shell title="拾光空间管理" fallbackRoute="/pages/admin/index"><view class="sg-content">
-  <view wx:if="{{error}}" class="sg-error">{{error}}</view><block wx:if="{{authorized}}"><button class="sg-button" bindtap="open">创建拾光空间</button>
-  <view wx:if="{{formOpen}}" class="sg-card"><view class="sg-title">{{editing ? '编辑空间' : '创建空间'}}</view><view class="sg-label">名称</view><input class="sg-input" value="{{form.name}}" maxlength="100" data-key="name" bindinput="input"/><image wx:if="{{form.coverUrl}}" src="{{form.coverUrl}}" class="sg-cover" mode="aspectFill"/><button class="sg-button" disabled="{{busy}}" bindtap="image">上传封面</button><view class="sg-row"><text>启用空间</text><switch checked="{{form.enabled}}" bindchange="enabled"/></view><view class="sg-label">信件</view><textarea class="sg-input sg-area" maxlength="20000" value="{{form.letter}}" data-key="letter" bindinput="input"/><view class="sg-label">绑定专属返图空间</view><picker range="{{options.albums}}" range-key="title" bindchange="album"><view class="sg-input">{{form.albumName || '请选择专属返图空间'}}</view></picker><block wx:if="{{!editing}}"><view class="sg-error">两人必须是不同账号，绑定后永久保留，禁用或删除后也不能换绑。</view><input class="sg-input" placeholder="筛选用户名称、手机、备注" value="{{query}}" bindinput="search"/><view>男生</view><picker range="{{available}}" range-key="label" data-role="boy" bindchange="user"><view class="sg-input">{{form.boyName || '请选择用户'}}</view></picker><view>女生</view><picker range="{{available}}" range-key="label" data-role="girl" bindchange="user"><view class="sg-input">{{form.girlName || '请选择用户'}}</view></picker></block><view class="sg-row"><button class="sg-button" disabled="{{busy || !form.cover}}" loading="{{busy}}" bindtap="save">保存</button><text class="sg-link" bindtap="cancel">取消</text></view></view>
-  <view wx:if="{{member}}" class="sg-card"><view class="sg-title">编辑空间成员资料</view><input class="sg-input" value="{{member.name}}" maxlength="100" bindinput="memberName"/><image wx:if="{{member.avatarUrl}}" src="{{member.avatarUrl}}" class="sg-avatar" mode="aspectFill"/><button class="sg-button" disabled="{{busy}}" data-member="1" bindtap="image">更换头像</button><view class="sg-row"><button class="sg-button" disabled="{{busy}}" bindtap="saveMember">保存资料</button><text class="sg-link" bindtap="cancel">取消</text></view></view>
-  <view class="sg-card" wx:for="{{items}}" wx:key="id"><image src="{{item.coverUrl}}" class="sg-small-image" mode="aspectFill"/><view class="sg-title">{{item.name}} · {{item.deletedAt ? '已删除' : item.enabled ? '启用' : '禁用'}}</view><view class="sg-muted">{{item.id}}</view><view wx:for="{{item.members}}" wx:for-item="memberRow" wx:key="userId" class="sg-row"><text>{{memberRow.role === 'boy' ? '男生' : '女生'}}：{{memberRow.name}}</text><text wx:if="{{!item.deletedAt}}" class="sg-link" data-space="{{item.id}}" data-user="{{memberRow.userId}}" bindtap="editMember">编辑资料</text></view><view wx:if="{{!item.deletedAt}}" class="sg-row"><text class="sg-link" data-id="{{item.id}}" bindtap="open">编辑空间</text><text class="sg-link sg-danger" data-id="{{item.id}}" bindtap="remove">删除空间</text></view></view>
-  <view class="sg-row"><button class="sg-button" disabled="{{!page}}" bindtap="previous">上一页</button><text>{{page + 1}}</text><button class="sg-button" disabled="{{!hasMore}}" bindtap="next">下一页</button></view>
-</block></view></secondary-page-shell>
+<secondary-page-shell title="拾光空间管理" fallbackRoute="/pages/admin/index">
+  <view class="sg-content sg-admin">
+    <view wx:if="{{error}}" class="sg-error">{{error}}</view>
+    <block wx:if="{{authorized}}">
+      <view class="sg-admin-toolbar"><view class="sg-muted">为两个人，留一处收藏日常的空间</view><button class="sg-button" disabled="{{busy}}" bindtap="open">＋ 创建拾光空间</button></view>
+      <view wx:if="{{formOpen}}" class="sg-card">
+        <view class="sg-title">{{editing ? '编辑空间' : '创建空间'}}</view>
+        <view class="sg-label">名称</view><input class="sg-input" value="{{form.name}}" maxlength="100" placeholder="给两个人的空间取个名字" data-key="name" bindinput="input"/>
+        <view class="sg-label">空间封面</view><image wx:if="{{form.coverUrl}}" src="{{form.coverUrl}}" class="sg-cover" mode="aspectFill"/>
+        <button class="sg-button sg-upload" disabled="{{busy}}" bindtap="image">{{form.cover ? '更换封面' : '上传封面'}}</button>
+        <view class="sg-row sg-between sg-admin-setting"><view><view>启用空间</view><view class="sg-muted">启用后，双方可从拾光入口进入</view></view><switch color="#FFC857" checked="{{form.enabled}}" bindchange="enabled"/></view>
+        <view class="sg-label">写给他们的信</view><textarea class="sg-input sg-area" maxlength="20000" value="{{form.letter}}" placeholder="写下一段温暖的开场白" data-key="letter" bindinput="input"/>
+        <view class="sg-label">绑定专属返图空间</view><picker range="{{options.albums}}" range-key="title" bindchange="album"><view class="sg-input">{{form.albumName || '请选择专属返图空间'}}　⌄</view></picker>
+        <block wx:if="{{!editing}}">
+          <view class="sg-note">两人必须是不同账号，绑定后永久保留，禁用或删除后也不能换绑。</view>
+          <view class="sg-label">选择空间成员</view><input class="sg-input" placeholder="筛选用户名称、手机、备注" value="{{query}}" bindinput="search"/>
+          <view class="sg-label">男生</view><picker range="{{available}}" range-key="label" data-role="boy" bindchange="user"><view class="sg-input">{{form.boyName || '请选择用户'}}　⌄</view></picker>
+          <view class="sg-label">女生</view><picker range="{{available}}" range-key="label" data-role="girl" bindchange="user"><view class="sg-input">{{form.girlName || '请选择用户'}}　⌄</view></picker>
+        </block>
+        <view class="sg-admin-actions"><button class="sg-button" disabled="{{busy || !form.cover}}" loading="{{busy}}" bindtap="save">保存空间</button><text class="sg-link" bindtap="cancel">取消</text></view>
+      </view>
+      <view wx:if="{{member}}" class="sg-card">
+        <view class="sg-title">编辑空间成员资料</view><view class="sg-muted">仅用于拾光空间，不影响全站账号资料</view>
+        <view class="sg-label">名称</view><input class="sg-input" value="{{member.name}}" maxlength="100" bindinput="memberName"/>
+        <view class="sg-row"><image wx:if="{{member.avatarUrl}}" src="{{member.avatarUrl}}" class="sg-avatar" mode="aspectFill"/><button class="sg-button sg-upload" disabled="{{busy}}" data-member="1" bindtap="image">更换头像</button></view>
+        <view class="sg-admin-actions"><button class="sg-button" disabled="{{busy}}" bindtap="saveMember">保存资料</button><text class="sg-link" bindtap="cancel">取消</text></view>
+      </view>
+      <view wx:if="{{!items.length && !formOpen}}" class="sg-card sg-center sg-muted">还没有拾光空间，创建一个属于两个人的故事。</view>
+      <view class="sg-card sg-admin-space" wx:for="{{items}}" wx:key="id">
+        <view class="sg-admin-cover"><image src="{{item.coverUrl}}" mode="aspectFill"/><text class="sg-admin-status {{item.enabled && !item.deletedAt ? 'is-enabled' : ''}}">{{item.deletedAt ? '已删除' : item.enabled ? '启用中' : '已禁用'}}</text></view>
+        <view class="sg-admin-body">
+          <view class="sg-title">{{item.name}}</view><view class="sg-muted sg-admin-id">空间 ID · {{item.id}}</view>
+          <view class="sg-admin-members">
+            <view wx:for="{{item.members}}" wx:for-item="memberRow" wx:key="userId" class="sg-admin-member">
+              <view class="sg-admin-avatar">♡</view><view class="sg-admin-member-name"><text class="sg-muted">{{memberRow.role === 'boy' ? '男生' : '女生'}}</text><text>{{memberRow.name}}</text></view>
+              <text wx:if="{{!item.deletedAt}}" class="sg-link" data-space="{{item.id}}" data-user="{{memberRow.userId}}" bindtap="editMember">编辑资料</text>
+            </view>
+          </view>
+          <view class="sg-muted sg-admin-id">专属返图空间 · {{item.albumId}}</view>
+          <view wx:if="{{!item.deletedAt}}" class="sg-admin-actions"><button class="sg-button" disabled="{{busy}}" data-id="{{item.id}}" bindtap="open">编辑空间</button><button class="sg-link sg-danger" disabled="{{busy}}" data-id="{{item.id}}" bindtap="remove">删除空间</button></view>
+        </view>
+      </view>
+      <view class="sg-row sg-admin-pagination"><button class="sg-link" disabled="{{!page}}" bindtap="previous">上一页</button><text>{{page + 1}}</text><button class="sg-link" disabled="{{!hasMore}}" bindtap="next">下一页</button></view>
+    </block>
+  </view>
+</secondary-page-shell>
