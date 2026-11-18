@@ -115,14 +115,12 @@ Component({
         this.applyLoginState(Boolean(member && member.userId));
       });
 
+      // 栏位先显示，内容与远端配置在后台加载；配置确认后才允许切换。
+      this.applyRuntimeConfig(globalData.runtimeConfig || buildRuntimeConfigPreset('standard'));
       if (!auditConfigReady) {
-        this.setData({ visible: false });
         if (app && typeof app.ensureAuditConfig === 'function') {
           app.ensureAuditConfig().catch(() => {});
         }
-      } else {
-        const runtimeConfig = globalData.runtimeConfig || buildRuntimeConfigPreset('standard');
-        this.applyRuntimeConfig(runtimeConfig);
       }
 
       if (app && typeof app.subscribeMiniProgramRuntimeConfig === 'function') {
@@ -233,7 +231,6 @@ Component({
         visible:
           !Boolean(this.data.useOfficialCustomTabBar) &&
           Boolean(this.properties.show) &&
-          Boolean(this.data.runtimeConfigReady) &&
           Boolean(this.data.hasBottomTabbar) &&
           nextList.length > 0,
       });
@@ -250,11 +247,15 @@ Component({
     },
 
     applyRuntimeConfig(runtimeConfig) {
+      const app = typeof getApp === 'function' ? getApp() : null;
       const normalized = normalizeRuntimeConfig(runtimeConfig);
       const nextList = hydrateTabBarItems(normalized, this.data.isLoggedIn);
-      this.setData({ runtimeConfig: normalized, runtimeConfigReady: true, list: nextList });
+      this.setData({
+        runtimeConfig: normalized,
+        runtimeConfigReady: Boolean(app && app.globalData && app.globalData.auditConfigReady),
+        list: nextList,
+      });
 
-      const app = typeof getApp === 'function' ? getApp() : null;
       if (app && typeof app.getPagePresentation === 'function') {
         this.applyPresentation(app.getPagePresentation());
         return;
@@ -286,6 +287,7 @@ Component({
     },
 
     onTapItem(e) {
+      if (!this.data.runtimeConfigReady) return;
       const path = normalizeMiniProgramRoutePath(
         e && e.currentTarget && e.currentTarget.dataset ? e.currentTarget.dataset.path : ''
       );

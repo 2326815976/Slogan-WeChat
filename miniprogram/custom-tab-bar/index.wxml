@@ -1,13 +1,3 @@
-<view class="tab-bootstrap-mask" wx:if="{{!runtimeConfigReady}}">
-  <view class="tab-bootstrap-mask__card">
-    <view class="tab-bootstrap-mask__orb">
-      <view class="tab-bootstrap-mask__spinner"></view>
-    </view>
-    <text class="tab-bootstrap-mask__title">拾光中......</text>
-    <text class="tab-bootstrap-mask__desc">正在加载页面</text>
-  </view>
-</view>
-
 <view class="tab-bar" wx:if="{{visible}}">
   <view class="tab-inner">
     <view

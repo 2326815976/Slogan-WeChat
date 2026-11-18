@@ -1,14 +1,7 @@
 <view class="page {{pageIsStandalone ? 'page--preview' : ''}}">
-  <view class="boot-loading" wx:if="{{!entryChecking && (runtimeConfigError || (!auditChecking && !homeRedirectPath && !pageIsStandalone))}}">
-    <view class="admin-loading-card admin-loading-card--page">
-      <text class="admin-loading-card__title">{{runtimeConfigError ? '页面暂时无法加载' : '暂无开放页面'}}</text>
-      <text class="admin-loading-card__desc">{{runtimeConfigError ? '请检查网络后重试' : '请稍后再来看看'}}</text>
-      <button class="runtime-retry" bindtap="retryRuntimeConfig">重新加载</button>
-    </view>
-  </view>
+  <!-- 页头先展示；入口检查、配置与页面数据只控制下方内容。 -->
   <primary-page-shell
     managedPageKey="{{pageIsStandalone ? '' : 'pose'}}"
-    wx:if="{{!entryChecking && !auditChecking && backendReady && (pageIsStandalone || homeRedirectPath === 'pages/index/index' || betaPoseBypassAllowed)}}"
     title="{{pageIsStandalone ? '摆姿推荐' : '拾光谣'}}"
     subtitle="{{pageIsStandalone ? '' : '✨ 记录此刻的不期而遇 ✨'}}"
     showBack="{{pageIsStandalone}}"
@@ -16,10 +9,17 @@
     fallbackTab="{{pageFallbackTab}}"
     preferFallback="{{pageIsStandalone}}"
     isHomePage="{{!pageIsStandalone}}"
-    animateIn="{{pageReady}}"
   />
 
-  <view class="boot-loading motion-fade-up motion-delay-2" wx:if="{{entryChecking || (!runtimeConfigError && (auditChecking || (!serviceMissing && !backendReady)))}}">
+  <view class="boot-loading {{pageIsStandalone ? 'boot-loading--preview' : ''}}" wx:if="{{!entryChecking && (runtimeConfigError || (!auditChecking && !homeRedirectPath && !pageIsStandalone))}}">
+    <view class="admin-loading-card admin-loading-card--page">
+      <text class="admin-loading-card__title">{{runtimeConfigError ? '页面暂时无法加载' : '暂无开放页面'}}</text>
+      <text class="admin-loading-card__desc">{{runtimeConfigError ? '请检查网络后重试' : '请稍后再来看看'}}</text>
+      <button class="runtime-retry" bindtap="retryRuntimeConfig">重新加载</button>
+    </view>
+  </view>
+
+  <view class="boot-loading {{pageIsStandalone ? 'boot-loading--preview' : ''}} motion-fade-up motion-delay-2" wx:if="{{entryChecking || (!runtimeConfigError && (auditChecking || (!serviceMissing && !backendReady)))}}">
     <view class="admin-loading-card admin-loading-card--page">
       <view class="admin-loading-card__orb">
         <view class="admin-loading-card__spinner"></view>

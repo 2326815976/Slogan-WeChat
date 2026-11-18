@@ -84,15 +84,8 @@ Component({
         this.applyLoginState(Boolean(member && member.userId));
       });
 
-      if (auditConfigReady) {
-        this.applyRuntimeConfig(bootRuntimeConfig);
-      } else {
-        this.setData({
-          runtimeConfigReady: false,
-          visible: false,
-          list: [],
-        });
-      }
+      // 先用现有配置绘制菜单，远端配置就绪前暂不响应导航。
+      this.applyRuntimeConfig(bootRuntimeConfig);
 
       if (!auditConfigReady && app && typeof app.ensureAuditConfig === "function") {
         app.ensureAuditConfig().catch(() => {});
@@ -194,7 +187,7 @@ Component({
 
       this.setData({
         visible:
-          Boolean(this.data.runtimeConfigReady) && Boolean(this.data.hasBottomTabbar) && nextList.length > 0,
+          Boolean(this.data.hasBottomTabbar) && nextList.length > 0,
         list: nextList,
         selected: nextSelected < 0 ? 0 : nextSelected,
         selectedPath: nextSelectedPath,
@@ -221,16 +214,12 @@ Component({
 
     applyRuntimeConfig(runtimeConfig) {
       const app = typeof getApp === "function" ? getApp() : null;
-      if (!app || !app.globalData || !app.globalData.auditConfigReady) {
-        this.setData({ runtimeConfigReady: false, visible: false, list: [] });
-        return;
-      }
       const normalized = normalizeRuntimeConfig(runtimeConfig);
       const nextList = hydrateTabBarItems(normalized, this.data.isLoggedIn);
 
       this.setData({
         runtimeConfig: normalized,
-        runtimeConfigReady: true,
+        runtimeConfigReady: Boolean(app && app.globalData && app.globalData.auditConfigReady),
         list: nextList,
       });
 
@@ -269,10 +258,6 @@ Component({
     syncForPage(pagePath) {
       const app = typeof getApp === "function" ? getApp() : null;
       const globalData = app && app.globalData ? app.globalData : {};
-      if (!globalData.auditConfigReady) {
-        this.setData({ runtimeConfigReady: false, visible: false, list: [] });
-        return;
-      }
       const normalizedPagePath = normalizeMiniProgramRoutePath(pagePath);
       if (!normalizedPagePath) {
         this.applyList(Array.isArray(this.data.list) ? this.data.list : []);
@@ -285,7 +270,7 @@ Component({
 
       this.setData({
         runtimeConfig: normalizedRuntimeConfig,
-        runtimeConfigReady: true,
+        runtimeConfigReady: Boolean(globalData.auditConfigReady),
         hasBottomTabbar: nextHasBottomTabbar,
         selectedPath: normalizedPagePath,
         list: nextList,
@@ -294,6 +279,7 @@ Component({
     },
 
     switchTab(e) {
+      if (!this.data.runtimeConfigReady) return;
       const path = String(
         (e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.path) || ""
       )

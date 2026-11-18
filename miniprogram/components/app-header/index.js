@@ -100,9 +100,7 @@ Component({
 
       const app = typeof getApp === "function" ? getApp() : null;
       const globalData = app && app.globalData ? app.globalData : {};
-      if (!Boolean(globalData.auditConfigReady)) {
-        return { title: "", subtitle: "" };
-      }
+      // 标题只负责展示，可先使用启动时恢复的文案，不等待内容请求。
       const runtimeConfig = globalData.runtimeConfig && typeof globalData.runtimeConfig === "object"
         ? globalData.runtimeConfig
         : {};
