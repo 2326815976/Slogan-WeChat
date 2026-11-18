@@ -1,9 +1,100 @@
-<secondary-page-shell title="心意奖券" fallbackRoute="/pages/shiguang/index"><view class="sg-content">
-  <view wx:if="{{error}}" class="sg-error">{{error}}</view><view wx:if="{{message}}" class="sg-card">{{message}}</view>
-  <view class="sg-card sg-center"><view class="sg-title">{{partnerName}} 的心意转盘</view><view class="sg-muted">剩余 {{balance}} 次 · 每项机会相同，每次必中奖</view><view class="pointer">▼</view><view class="wheel" style="background:{{gradient}};transform:rotate({{angle}}deg)"><text class="wheel-label" wx:for="{{pool}}" wx:key="id" style="{{item.labelStyle}}">{{item.name}}</text></view><button class="sg-button" disabled="{{busy || !canDraw}}" bindtap="draw">转动心意</button><view wx:if="{{poolCount === 0}}" class="sg-muted">对方还没有准备奖项</view><view wx:for="{{pool}}" wx:key="id" class="sg-divider"><view>{{item.name}}</view><view class="sg-text">{{item.content}}</view><view class="sg-muted">{{partnerName}} 提供 · {{item.time}}</view></view></view>
-  <view class="sg-card"><view class="sg-title">送给 {{partnerName}}</view><view class="sg-muted">对方可用 {{partnerBalance}} 次</view><input type="number" class="sg-input" value="{{amount}}" data-key="amount" bindinput="input"/><view class="sg-row"><button class="sg-button" disabled="{{busy}}" bindtap="grant">赠送次数</button><button class="sg-button" disabled="{{busy}}" data-mode="gift" bindtap="openForm">直接赠送卡券</button></view></view>
-  <view wx:if="{{form}}" class="sg-card"><view class="sg-title">{{form === 'gift' ? '赠送一张心意券' : '准备奖项'}}</view><view class="sg-label">名称</view><input class="sg-input" maxlength="100" value="{{name}}" data-key="name" bindinput="input"/><view class="sg-label">内容</view><textarea class="sg-input sg-area" maxlength="5000" value="{{content}}" data-key="content" bindinput="input"/><view class="sg-row"><button class="sg-button" disabled="{{busy}}" bindtap="save">{{form === 'gift' ? '赠送给对方' : '保存'}}</button><text class="sg-link" bindtap="cancel">取消</text></view></view>
-  <view class="sg-card"><view class="sg-row sg-between"><view class="sg-title">我提供的奖池</view><text class="sg-link" data-mode="prize" bindtap="openForm">新增奖项</text></view><view class="sg-muted">供 {{partnerName}} 抽取，修改不影响已获得的奖券。</view><view wx:for="{{own}}" wx:key="id" class="sg-divider"><view>{{item.name}}</view><view class="sg-text">{{item.content}}</view><view class="sg-muted">抽奖人：{{partnerName}} · {{item.time}}</view><view class="sg-row"><text class="sg-link" data-mode="prize" data-id="{{item.id}}" bindtap="openForm">编辑</text><text class="sg-link sg-danger" data-id="{{item.id}}" bindtap="remove">删除</text></view></view></view>
-  <view class="sg-card"><view class="sg-title">我们的奖券</view><view wx:if="{{!tickets.length}}" class="sg-muted">还没有收到心意券</view><view wx:for="{{tickets}}" wx:key="id" class="sg-divider"><view class="sg-row sg-between"><text>{{item.name}}</text><text class="sg-chip">{{item.status === 'used' ? '已使用' : '待使用'}}</text></view><view class="sg-text">{{item.content}}</view><view class="sg-muted">{{item.source === 'draw' ? '抽奖获得' : '直接赠送'}} · {{item.provider}} 提供给 {{item.holder}}</view><view class="sg-muted">获得：{{item.time}}</view><view wx:if="{{item.usedTime}}" class="sg-muted">使用：{{item.usedTime}}</view><button wx:if="{{item.canRedeem}}" class="sg-button" disabled="{{busy}}" data-id="{{item.id}}" bindtap="redeem">已兑现，标记使用</button></view><text wx:if="{{ticketMore}}" class="sg-link" data-resource="tickets" bindtap="more">更多奖券</text></view>
-  <view class="sg-card"><view class="sg-title">次数赠送记录</view><view wx:for="{{grants}}" wx:key="id" class="sg-muted">{{item.giver}} 给予 {{item.receiver}} {{item.amount}} 次 · {{item.time}}</view><text wx:if="{{grantMore}}" class="sg-link" data-resource="grants" bindtap="more">更多记录</text></view>
-</view></secondary-page-shell>
+<template name="offeringEditor">
+  <view class="sg-divider">
+    <view class="sg-title">{{formTitle}}</view>
+    <view class="sg-label">名称</view>
+    <input class="sg-input" maxlength="100" value="{{name}}" disabled="{{busy}}" data-key="name" bindinput="input"/>
+    <view class="sg-label">内容</view>
+    <textarea class="sg-input sg-area" maxlength="5000" value="{{content}}" disabled="{{busy}}" data-key="content" bindinput="input"/>
+    <view class="sg-label">图片（可选）</view>
+    <image wx:if="{{imageUrl}}" class="offering-image" src="{{imageUrl}}" mode="aspectFit"/>
+    <view class="sg-row">
+      <button class="sg-button" disabled="{{busy}}" bindtap="chooseImage">{{image ? '更换图片' : '上传图片'}}</button>
+      <text wx:if="{{image}}" class="sg-link" bindtap="clearImage">移除图片</text>
+    </view>
+    <view class="sg-row">
+      <button class="sg-button" disabled="{{busy || !name || !content}}" bindtap="save">保存</button>
+      <text class="sg-link" bindtap="cancel">取消</text>
+    </view>
+  </view>
+</template>
+
+<template name="offeringDetails">
+  <view>{{item.name}}</view>
+  <image wx:if="{{item.imageUrl}}" class="offering-image" src="{{item.imageUrl}}" mode="aspectFit" lazy-load="{{true}}"/>
+  <view class="sg-text">{{item.content}}</view>
+  <view class="sg-muted">{{item.provider}} 提供 · {{item.drawerId ? '抽奖人 ' : '拟赠给 '}}{{item.recipient}} · {{item.time}}</view>
+</template>
+
+<secondary-page-shell title="心意奖券" fallbackRoute="/pages/shiguang/index">
+  <view class="sg-content">
+    <view wx:if="{{error}}" class="sg-error">{{error}}</view>
+    <view wx:if="{{message}}" class="sg-card">{{message}}</view>
+
+    <view class="sg-card sg-center">
+      <view class="sg-title">{{partnerName}} 的心意转盘</view>
+      <view class="sg-muted">剩余 {{balance}} 次 · 每项机会相同，每次必中奖</view>
+      <view class="pointer">▼</view>
+      <view class="wheel" style="background:{{gradient}};transform:rotate({{angle}}deg)">
+        <text class="wheel-label" wx:for="{{pool}}" wx:key="id" style="{{item.labelStyle}}">{{item.name}}</text>
+      </view>
+      <button class="sg-button" disabled="{{busy || (retryDraw ? false : !balance || !canDraw)}}" bindtap="draw">{{retryDraw ? '确认上次抽奖' : '转动心意'}}</button>
+      <view wx:if="{{!pool.length}}" class="sg-muted">对方还没有准备奖项</view>
+      <view wx:for="{{pool}}" wx:key="id" class="sg-divider"><template is="offeringDetails" data="{{item: item}}"/></view>
+    </view>
+
+    <view class="sg-card">
+      <view class="sg-title">给 {{partnerName}} 抽奖次数</view>
+      <view class="sg-muted">对方可用 {{partnerBalance}} 次</view>
+      <input type="number" class="sg-input" value="{{amount}}" data-key="amount" bindinput="input"/>
+      <button class="sg-button" disabled="{{busy}}" bindtap="grant">赠送次数</button>
+    </view>
+
+    <view class="sg-card">
+      <view class="sg-row sg-between"><view class="sg-title">我提供的奖池</view><text class="sg-link" data-mode="prizes" bindtap="openForm">新增奖项</text></view>
+      <view class="sg-muted">供 {{partnerName}} 抽取，修改不会影响已获得的奖券。</view>
+      <template wx:if="{{form === 'prizes'}}" is="offeringEditor" data="{{formTitle, name, content, image, imageUrl, busy}}"/>
+      <view wx:for="{{own}}" wx:key="id" class="sg-divider">
+        <template is="offeringDetails" data="{{item: item}}"/>
+        <view class="sg-row">
+          <text class="sg-link" data-mode="prizes" data-id="{{item.id}}" bindtap="openForm">编辑</text>
+          <text class="sg-link sg-danger" data-mode="prizes" data-id="{{item.id}}" bindtap="remove">删除</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="sg-card">
+      <view class="sg-row sg-between"><view class="sg-title">待赠卡券</view><text class="sg-link" data-mode="gift-cards" bindtap="openForm">创建卡券</text></view>
+      <template wx:if="{{form === 'gift-cards'}}" is="offeringEditor" data="{{formTitle, name, content, image, imageUrl, busy}}"/>
+      <view wx:if="{{!cards.length}}" class="sg-muted">还没有待赠卡券</view>
+      <view wx:for="{{cards}}" wx:key="id" class="sg-divider">
+        <template is="offeringDetails" data="{{item: item}}"/>
+        <view wx:if="{{item.own}}" class="sg-row">
+          <button class="sg-button" disabled="{{busy}}" data-id="{{item.id}}" bindtap="sendCard">赠送给对方</button>
+          <text class="sg-link" data-mode="gift-cards" data-id="{{item.id}}" bindtap="openForm">编辑</text>
+          <text class="sg-link sg-danger" data-mode="gift-cards" data-id="{{item.id}}" bindtap="remove">删除</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="sg-card">
+      <view class="sg-title">我们的奖券</view>
+      <view wx:if="{{!tickets.length}}" class="sg-muted">还没有收到心意券</view>
+      <view wx:for="{{tickets}}" wx:key="id" class="sg-divider">
+        <view class="sg-row sg-between"><text>{{item.name}}</text><text class="sg-chip">{{item.status === 'used' ? '已使用' : '待使用'}}</text></view>
+        <image wx:if="{{item.imageUrl}}" class="offering-image" src="{{item.imageUrl}}" mode="aspectFit" lazy-load="{{true}}"/>
+        <view class="sg-text">{{item.content}}</view>
+        <view class="sg-muted">{{item.source === 'draw' ? '抽奖获得' : '直接赠送'}} · {{item.provider}} 提供给 {{item.holder}}</view>
+        <view class="sg-muted">获得：{{item.time}}</view>
+        <view wx:if="{{item.usedTime}}" class="sg-muted">使用：{{item.usedTime}}</view>
+        <button wx:if="{{item.canRedeem}}" class="sg-button" disabled="{{busy}}" data-id="{{item.id}}" bindtap="redeem">已兑现，标记使用</button>
+      </view>
+      <text wx:if="{{ticketMore}}" class="sg-link" data-resource="tickets" bindtap="more">更多奖券</text>
+    </view>
+
+    <view class="sg-card">
+      <view class="sg-title">次数赠送记录</view>
+      <view wx:for="{{grants}}" wx:key="id" class="sg-muted">{{item.giver}} 给予 {{item.receiver}} {{item.amount}} 次 · {{item.time}}</view>
+      <text wx:if="{{grantMore}}" class="sg-link" data-resource="grants" bindtap="more">更多记录</text>
+    </view>
+  </view>
+</secondary-page-shell>

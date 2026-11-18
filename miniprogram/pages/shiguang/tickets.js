@@ -1,44 +1,161 @@
 const sg = require('../../services/shiguang');
+const DRAW_KEY = JSON.stringify(['draw', {}]);
+
 Page({
-  data: { summary: null, pool: [], poolCount: 0, canDraw: false, own: [], tickets: [], grants: [], balance: 0, partnerBalance: 0, partnerName: '', angle: 0, gradient: '#FBEFCB', amount: '1', form: '', name: '', content: '', editing: null, busy: false, message: '', error: '', ticketMore: false, grantMore: false },
-  onShow() { this.load(); this.timer = setInterval(() => { if (!this.data.busy) this.load(); }, 5000); },
+  data: {
+    summary: null, pool: [], canDraw: false, retryDraw: false, own: [], cards: [], tickets: [], grants: [],
+    balance: 0, partnerBalance: 0, partnerName: '', angle: 0, gradient: '#FBEFCB', amount: '1',
+    form: '', formTitle: '', name: '', content: '', image: '', imageUrl: '', editing: null,
+    busy: false, message: '', error: '', ticketMore: false, grantMore: false,
+  },
+  onLoad() { this.requests = new Map(); },
+  onShow() {
+    if (!this.data.busy) this.load();
+    clearInterval(this.timer);
+    this.timer = setInterval(() => { if (!this.data.busy && !this.loading) this.load(); }, 5000);
+  },
   onHide() { clearInterval(this.timer); }, onUnload() { clearInterval(this.timer); },
-  async history(resource, page = 0) {
-    const result = await sg.api(`/${resource}?page=${page}`), s = this.data.summary;
-    const name = id => (s.space.members.find(m => m.userId === id) || {}).name || '成员';
-    const items = result.items.map(r => resource === 'tickets' ? { ...r, provider: name(r.providerId), holder: name(r.holderId), time: sg.time(r.obtainedAt), usedTime: sg.time(r.usedAt), canRedeem: r.providerId === s.userId && r.status === 'unused' } : { ...r, giver: name(r.giverId), receiver: name(r.receiverId), time: sg.time(r.createdAt) });
-    this[`${resource}Page`] = page;
-    this.setData({ [resource]: page ? this.data[resource].concat(items) : items, [resource === 'tickets' ? 'ticketMore' : 'grantMore']: result.hasMore });
+  memberName(summary, id) {
+    return summary.space.members.find(member => member.userId === id)?.name || '成员';
+  },
+  historyItems(resource, items, summary, links) {
+    const name = id => this.memberName(summary, id);
+    return items.map(item => resource === 'tickets' ? {
+      ...item, imageUrl: links[item.image] || '', provider: name(item.providerId), holder: name(item.holderId),
+      time: sg.time(item.obtainedAt), usedTime: sg.time(item.usedAt), canRedeem: item.providerId === summary.userId && item.status === 'unused',
+    } : { ...item, giver: name(item.giverId), receiver: name(item.receiverId), time: sg.time(item.createdAt) });
   },
   async load() {
-    if (this.loading) return; this.loading = true;
+    const loading = {};
+    this.loading = loading;
     try {
-      const responses = await Promise.all([sg.api(), sg.api('/prizes')]);
-      const s = responses[0], result = responses[1];
-      const partner = s.space.members.find(m => m.userId !== s.userId);
-      const pool = result.items.filter(p => p.providerId !== s.userId).map((p, i, list) => ({ ...p, time: sg.time(p.createdAt), labelStyle: `transform:rotate(${(i + .5) * 360 / list.length - 90}deg) translateX(20rpx)` }));
-      this.setData({ summary: s, pool, poolCount: pool.length, canDraw: pool.length > 0 && s.balances[s.userId] > 0, own: result.items.filter(p => p.providerId === s.userId).map(p => ({ ...p, time: sg.time(p.createdAt) })), balance: s.balances[s.userId], partnerBalance: s.balances[partner.userId], partnerName: partner.name, gradient: pool.length ? `conic-gradient(${pool.map((p, i) => `${['#FFE2AE', '#F6C6C6', '#DCE7D1', '#FBEFCB'][i % 4]} ${i * 100 / pool.length}% ${(i + 1) * 100 / pool.length}%`).join(',')})` : '#FBEFCB' });
-      await Promise.all([this.history('tickets'), this.history('grants')]);
-    } catch (e) { sg.fail(this, e); } finally { this.loading = false; }
+      const [summary, prizes, cards, tickets, grants] = await Promise.all([
+        sg.api(), sg.api('/prizes'), sg.api('/gift-cards'), sg.api('/tickets?page=0'), sg.api('/grants?page=0'),
+      ]);
+      if (this.loading !== loading) return;
+      const partner = summary.space.members.find(member => member.userId !== summary.userId);
+      const balance = summary.balances[summary.userId] || 0;
+      this.setData({ summary, balance, partnerName: partner.name, partnerBalance: summary.balances[partner.userId] || 0 });
+
+      const links = await sg.mediaLinks([...prizes.items, ...cards.items, ...tickets.items].map(item => item.image));
+      if (this.loading !== loading) return;
+      const offering = item => ({ ...item, imageUrl: links[item.image] || '', time: sg.time(item.createdAt),
+        provider: this.memberName(summary, item.providerId), recipient: this.memberName(summary, item.drawerId || item.holderId),
+        own: item.providerId === summary.userId,
+      });
+      const prizeItems = prizes.items.map(offering);
+      const pool = prizeItems.filter(item => !item.own).map((item, index, list) => ({
+        ...item, labelStyle: `transform:rotate(${(index + .5) * 360 / list.length - 90}deg) translateX(20rpx)`,
+      }));
+      const colors = ['#FFE2AE', '#F6C6C6', '#DCE7D1', '#FBEFCB'];
+      const segments = pool.map((item, index) => `${colors[index % 4]} ${index * 100 / pool.length}% ${(index + 1) * 100 / pool.length}%`);
+      this.ticketsPage = 0;
+      this.grantsPage = 0;
+      this.setData({ pool, own: prizeItems.filter(item => item.own), cards: cards.items.map(offering),
+        canDraw: pool.length > 0, gradient: pool.length ? `conic-gradient(${segments.join(',')})` : '#FBEFCB',
+        tickets: this.historyItems('tickets', tickets.items, summary, links), ticketMore: tickets.hasMore,
+        grants: this.historyItems('grants', grants.items, summary, links), grantMore: grants.hasMore,
+      });
+    } catch (error) { if (this.loading === loading) sg.fail(this, error); }
+    finally { if (this.loading === loading) this.loading = null; }
   },
-  input(e) { this.setData({ [e.currentTarget.dataset.key]: e.detail.value }); },
-  openForm(e) { const mode = e.currentTarget.dataset.mode, id = e.currentTarget.dataset.id; const prize = id ? this.data.own.find(p => p.id === id) : null; this.prizeId = prize ? prize.id : sg.uuid(); this.setData({ form: mode, editing: prize, name: prize ? prize.name : '', content: prize ? prize.content : '' }); },
-  cancel() { this.setData({ form: '', editing: null }); },
+  input(event) { this.setData({ [event.currentTarget.dataset.key]: event.detail.value }); },
+  openForm(event) {
+    if (this.data.busy) return;
+    const { mode, id } = event.currentTarget.dataset;
+    const records = mode === 'gift-cards' ? this.data.cards : this.data.own;
+    const record = id ? records.find(item => item.id === id && item.own) : null;
+    if (id && !record) return;
+    this.recordId = record ? record.id : sg.uuid();
+    this.setData({ form: mode, formTitle: `${record ? '编辑' : '新增'}${mode === 'gift-cards' ? '卡券' : '奖项'}`,
+      editing: record, name: record?.name || '', content: record?.content || '', image: record?.image || '', imageUrl: record?.imageUrl || '', error: '',
+    });
+  },
+  cancel() { if (!this.data.busy) this.setData({ form: '', editing: null }); },
+  clearImage() { if (!this.data.busy) this.setData({ image: '', imageUrl: '' }); },
+  async mutate(work) {
+    if (this.data.busy) return;
+    this.setData({ busy: true, error: '', message: '' });
+    try { await work(); }
+    catch (error) { if (!String(error.errMsg || '').includes('cancel')) sg.fail(this, error); }
+    finally { this.setData({ busy: false }); }
+  },
+  chooseImage() {
+    return this.mutate(async () => {
+      const file = await sg.chooseImage();
+      this.setData({ image: await sg.upload(file), imageUrl: file });
+    });
+  },
   async action(operation, data = {}) {
-    if (this.data.busy) return; this.setData({ busy: true, error: '', message: '' });
-    const key = JSON.stringify([operation, data]);
-    if (!this.request || this.request.key !== key) this.request = { key, id: sg.uuid() };
-    try {
-      const result = await sg.api('/actions', 'POST', { operation, requestId: this.request.id, ...data }); this.request = null;
-      if (operation === 'draw') { const i = Math.max(0, this.data.pool.findIndex(p => p.id === result.prizeId)); this.setData({ angle: Math.ceil(this.data.angle / 360) * 360 + 1440 + 360 - (i + .5) * 360 / Math.max(1, this.data.pool.length), message: `抽中了「${result.name}」，已经放入你的奖券。` }); }
-      else this.setData({ message: operation === 'grant' ? '抽奖次数已送达' : operation === 'gift' ? '心意已送达' : '已记录兑现时间' });
-      this.cancel(); await this.load();
-    } catch (e) { sg.fail(this, e); } finally { this.setData({ busy: false }); }
+    await this.mutate(async () => {
+      const key = JSON.stringify([operation, data]);
+      const requestId = this.requests.get(key) || sg.uuid();
+      this.requests.set(key, requestId);
+      let result;
+      try {
+        result = await sg.api('/actions', 'POST', { operation, requestId, ...data });
+        this.requests.delete(key);
+      } catch (error) {
+        if (error.statusCode === 409) this.requests.delete(key);
+        throw error;
+      } finally { this.setData({ retryDraw: this.requests.has(DRAW_KEY) }); }
+      let spin;
+      if (operation === 'draw') {
+        const { pool, angle } = this.data;
+        const index = pool.findIndex(item => item.id === result.prizeId);
+        this.setData({
+          angle: index < 0 ? angle : Math.ceil(angle / 360) * 360 + 1800 - (index + .5) * 360 / pool.length,
+          message: `抽中了「${result.name}」，已经放入你的奖券。`,
+        });
+        if (index >= 0) spin = new Promise(resolve => setTimeout(resolve, 2500));
+      } else {
+        this.setData({ message: operation === 'grant' ? '抽奖次数已送达' : operation === 'send-card' ? '心意已送达' : '已记录兑现时间' });
+      }
+      if (operation === 'send-card' && this.data.editing?.id === data.cardId) this.setData({ form: '', editing: null });
+      await Promise.all([this.load(), spin]);
+    });
   },
-  draw() { if (this.data.balance > 0 && this.data.pool.length) this.action('draw'); },
-  grant() { this.action('grant', { amount: Number(this.data.amount) }); },
-  async redeem(e) { if (await sg.confirm('确认已经为对方兑现这张券？')) this.action('redeem', { ticketId: e.currentTarget.dataset.id }); },
-  async save() { if (this.data.form === 'gift') return this.action('gift', { name: this.data.name, content: this.data.content }); if (this.data.busy) return; this.setData({ busy: true }); try { const p = this.data.editing; await sg.api(`/prizes${p ? `/${p.id}` : ''}`, p ? 'PUT' : 'POST', { id: this.prizeId, version: p && p.version, name: this.data.name, content: this.data.content }); this.cancel(); await this.load(); } catch (e) { sg.fail(this, e); } finally { this.setData({ busy: false }); } },
-  async remove(e) { if (this.data.busy || !await sg.confirm('删除这个奖项？已获得的券会保留。')) return; this.setData({ busy: true }); try { const p = this.data.own.find(p => p.id === e.currentTarget.dataset.id); await sg.api(`/prizes/${p.id}`, 'DELETE', { version: p.version }); await this.load(); } catch (e) { sg.fail(this, e); } finally { this.setData({ busy: false }); } },
-  more(e) { const resource = e.currentTarget.dataset.resource; this.history(resource, (this[`${resource}Page`] || 0) + 1).catch(e => sg.fail(this, e)); },
+  draw() { if (this.data.retryDraw || (this.data.balance > 0 && this.data.canDraw)) return this.action('draw'); },
+  grant() { return this.action('grant', { amount: Number(this.data.amount) }); },
+  async redeem(event) {
+    const ticketId = event.currentTarget.dataset.id;
+    if (!this.data.busy && await sg.confirm('确认已经为对方兑现这张券？')) return this.action('redeem', { ticketId });
+  },
+  async sendCard(event) {
+    const card = this.data.cards.find(item => item.id === event.currentTarget.dataset.id && item.own);
+    if (card && !this.data.busy && await sg.confirm(`确认把「${card.name}」送给 ${card.recipient}？送出后不可编辑或删除。`)) {
+      return this.action('send-card', { cardId: card.id, version: card.version });
+    }
+  },
+  save() {
+    const { form, editing, name, content, image } = this.data;
+    if (!form) return;
+    return this.mutate(async () => {
+      await sg.api(`/${form}${editing ? `/${editing.id}` : ''}`, editing ? 'PUT' : 'POST', { id: this.recordId, version: editing?.version, name, content, image });
+      this.setData({ form: '', editing: null, message: editing ? '修改已保存' : form === 'gift-cards' ? '卡券已创建，可稍后赠送' : '奖项已创建' });
+      await this.load();
+    });
+  },
+  async remove(event) {
+    const { mode, id } = event.currentTarget.dataset;
+    const records = mode === 'gift-cards' ? this.data.cards : this.data.own;
+    const record = records.find(item => item.id === id && item.own);
+    if (!record || this.data.busy || !await sg.confirm(mode === 'gift-cards' ? '删除这张待赠卡券？' : '删除这个奖项？已获得的券会保留。')) return;
+    await this.mutate(async () => {
+      await sg.api(`/${mode}/${id}`, 'DELETE', { version: record.version });
+      if (this.data.editing?.id === id) this.setData({ form: '', editing: null });
+      await this.load();
+    });
+  },
+  async more(event) {
+    const resource = event.currentTarget.dataset.resource;
+    await this.mutate(async () => {
+      const page = this[`${resource}Page`] + 1;
+      const result = await sg.api(`/${resource}?page=${page}`);
+      const links = resource === 'tickets' ? await sg.mediaLinks(result.items.map(item => item.image)) : {};
+      const items = this.historyItems(resource, result.items, this.data.summary, links);
+      this[`${resource}Page`] = page;
+      this.setData({ [resource]: this.data[resource].concat(items), [resource === 'tickets' ? 'ticketMore' : 'grantMore']: result.hasMore });
+    });
+  },
 });
