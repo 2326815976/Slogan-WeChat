@@ -1,6 +1,7 @@
 const { requestJson, requestUpload } = require('../utils/cloudrun');
 const config = require('../config');
 const { getStoredCookie, subscribeStoredCookieClear } = require('../utils/auth');
+const { resolvePublicUrl } = require('../utils/storage-url');
 
 // 临时链接有效期为 5 分钟；按会话缓存，提前 1 分钟重新申请。
 const mediaLinkCache = new Map();
@@ -58,14 +59,18 @@ async function summary(previous) {
   const links = {};
   if (previous && summarySessions.get(previous) === cookie &&
       previous.space.id === data.space.id && previous.publishState === data.publishState) {
-    links[previous.space.cover] = previous.space.coverUrl;
     previous.space.members.forEach(m => { links[m.avatar] = m.avatarUrl; });
+    // 同一封面沿用已显示的链接，避免轮询刷新签名导致闪烁；换绑或换图时更新。
+    if (data.album && previous.album && data.album.id === previous.album.id &&
+        data.album.cover === previous.album.cover && previous.album.coverUrl) {
+      data.album.coverUrl = previous.album.coverUrl;
+    }
   }
-  const refs = [data.space.cover, ...data.space.members.map(m => m.avatar)];
+  const refs = data.space.members.map(m => m.avatar);
   Object.assign(links, await mediaLinks(refs.filter(ref => !links[ref])));
   if (getStoredCookie() !== cookie) throw new Error('登录状态已变化，请重新打开页面');
-  data.space.coverUrl = links[data.space.cover] || data.space.cover;
-  data.space.members = data.space.members.map(m => ({ ...m, avatarUrl: links[m.avatar] || m.avatar, todayMood: (data.moods.find(e => e.createdBy === m.userId) || {}).payload?.mood || '今日未记录' }));
+  if (data.album) data.album.coverUrl = resolvePublicUrl(data.album.coverUrl);
+  data.space.members = data.space.members.map(m => ({ ...m, avatarUrl: links[m.avatar] || m.avatar, todayMood: (data.moods.find(e => e.createdBy === m.userId) || {}).payload?.mood || '点击记录心情' }));
   summarySessions.set(data, cookie);
   return data;
 }

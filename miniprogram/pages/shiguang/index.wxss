@@ -1,2 +1,205 @@
 @import './shared.wxss';
 @import '../../styles/admin-loading.wxss';
+
+/* 首页独立使用纸张色与短卡片，其他玩法页面沿用公共样式。 */
+.space-content {
+  color: #66462f;
+  padding: 12rpx 32rpx calc(160rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.space-content--beta { padding-bottom: 32rpx; }
+.space-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24rpx;
+  margin-bottom: 36rpx;
+}
+/* 封面和右侧纪念日组件分别按列宽撑出同尺寸的正方形。 */
+.space-cover {
+  position: relative;
+  min-width: 0;
+  padding-top: 100%;
+  overflow: hidden;
+  border-radius: 32rpx;
+  background: #fff2d8;
+  box-shadow: 0 8rpx 16rpx rgba(213, 173, 111, 0.1);
+}
+.space-cover__body {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+}
+.space-cover__visual { position: relative; flex: 1; min-height: 0; }
+.space-cover__image,
+.space-cover__empty { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
+.space-cover__image { display: block; width: 100%; height: 100%; }
+.space-cover__empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.space-cover__placeholder { width: 80rpx; height: 80rpx; }
+/* 名称在顶部居中，底部入口与日期卡片保持同一高度。 */
+.space-cover__heading { flex: none; padding: 16rpx 20rpx 8rpx; text-align: center; }
+.space-cover__caption {
+  flex: none;
+  padding: 12rpx 20rpx 18rpx;
+}
+.space-cover__title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-all;
+  font-size: 26rpx;
+  font-weight: 700;
+  line-height: 36rpx;
+}
+.space-cover__entry { display: flex; align-items: center; justify-content: space-between; color: #78573e; font-size: 22rpx; line-height: 1.5; }
+.space-cover__arrow { font-size: 30rpx; line-height: 1; }
+.space-members {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24rpx;
+  margin-bottom: 36rpx;
+}
+.space-member { display: flex; align-items: center; min-width: 0; gap: 16rpx; }
+/* 两侧文字朝向各自头像，两枚头像在成员行中央相邻。 */
+.space-member--left { flex-direction: row-reverse; }
+.space-member--left .space-member__info { text-align: right; }
+.space-member__portrait {
+  position: relative;
+  flex: none;
+  width: 112rpx;
+  height: 112rpx;
+  padding: 5rpx;
+  border: 2rpx dashed #e6c9a1;
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: #fffdf7;
+}
+.space-member__avatar {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 50%;
+  background: #f6e9d4;
+}
+.space-member__avatar--empty { display: flex; align-items: center; justify-content: center; }
+.space-member__avatar--empty image { width: 48rpx; height: 48rpx; opacity: 0.6; }
+.space-member__edit[size='mini'] {
+  position: absolute;
+  right: -2rpx;
+  bottom: 0;
+  width: 42rpx;
+  height: 42rpx;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fffefd;
+  border: 1rpx solid #f1e4d2;
+  box-shadow: 0 3rpx 7rpx rgba(102, 70, 47, 0.1);
+}
+.space-member__edit image { width: 26rpx; height: 26rpx; }
+.space-member__info { flex: 1; min-width: 0; }
+.space-member__name {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 30rpx;
+  line-height: 1.5;
+  font-weight: 700;
+  margin-bottom: 8rpx;
+}
+.space-mood {
+  display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: #ffdc8b;
+  color: #66462f;
+  border-radius: 999rpx;
+  padding: 7rpx 14rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+.space-mood--blue { background: #cce3ee; }
+.space-letter {
+  border: 2rpx dashed #ffe4b4;
+  border-radius: 28rpx;
+  background: rgba(255, 253, 246, 0.8);
+  box-shadow: 0 5rpx 7rpx rgba(231, 186, 111, 0.12);
+  margin-bottom: 36rpx;
+  overflow: hidden;
+}
+.space-letter__heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 22rpx;
+  min-height: 112rpx;
+  padding: 16rpx 34rpx;
+  box-sizing: border-box;
+  text-align: left;
+  color: #66462f;
+}
+.space-letter__icon { flex: none; width: 94rpx; height: 80rpx; }
+.space-letter__title { font-size: 32rpx; font-weight: 700; line-height: 1.5; z-index: 1; }
+.space-letter__body {
+  margin: 0 32rpx;
+  padding: 24rpx 0 32rpx;
+  border-top: 2rpx dashed #ead9c0;
+  font-size: 28rpx;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.space-modules {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16rpx;
+}
+.space-module {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 104rpx;
+  padding: 16rpx 22rpx;
+  gap: 16rpx;
+  border-radius: 32rpx;
+  background: #fffefd;
+  color: #66462f;
+  text-align: left;
+  box-shadow: 0 5rpx 8rpx rgba(185, 141, 85, 0.06);
+  box-sizing: border-box;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.space-module__icon { flex: none; width: 72rpx; height: 72rpx; }
+.space-module:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.space-module__label { flex: 1; min-width: 0; font-size: 29rpx; line-height: 1.4; font-weight: 700; white-space: nowrap; }
+.space-arrow { flex: none; width: 14rpx; height: 24rpx; opacity: 0.65; transition: transform 0.2s ease; }
+.space-arrow--down { transform: rotate(90deg); }
+.space-pressed { opacity: 0.75; }
+.space-module--pressed { transform: translateY(2rpx); background: #fff2d8; }
+
+@media (max-width: 360px) {
+  .space-member { gap: 12rpx; }
+  .space-member__portrait { width: 100rpx; height: 100rpx; }
+  .space-module { gap: 12rpx; padding-left: 18rpx; padding-right: 18rpx; }
+  .space-module__label { font-size: 28rpx; }
+}

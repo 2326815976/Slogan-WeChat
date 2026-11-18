@@ -1,21 +1,65 @@
 <template name="space-content">
-  <view class="sg-content {{summary.publishState === 'online' ? 'sg-bottom-space' : ''}}">
+  <view class="space-content {{summary.publishState === 'beta' ? 'space-content--beta' : ''}}">
     <view wx:if="{{error}}" class="sg-error">{{error}}</view>
-    <view wx:if="{{summary}}">
-      <view class="sg-card sg-hero"><image src="{{summary.space.coverUrl}}" mode="aspectFill" class="sg-cover"/><view class="sg-members"><view class="sg-member" wx:for="{{summary.space.members}}" wx:key="userId"><image wx:if="{{item.avatarUrl}}" class="sg-avatar" src="{{item.avatarUrl}}" mode="aspectFill"/><text wx:else class="sg-avatar sg-center">♡</text><text>{{item.name}}</text><text class="sg-chip" data-key="mood" bindtap="open">{{item.todayMood}}</text><text wx:if="{{item.userId === summary.userId}}" class="sg-link" bindtap="editProfile">编辑我的资料</text></view></view></view>
-      <view wx:if="{{summary.space.letter}}" class="sg-card sg-letter" bindtap="toggleLetter"><view class="sg-title">写给我们的信 {{letterOpen ? '⌃' : '⌄'}}</view><view wx:if="{{letterOpen}}" class="sg-text">{{summary.space.letter}}</view></view>
-      <view class="sg-grid"><view class="sg-card sg-module" wx:for="{{modules}}" wx:key="key" data-key="{{item.key}}" bindtap="open"><view class="sg-module-icon">{{item.icon}}</view><view class="sg-title">{{item.label}}</view><view class="sg-muted">{{item.description}}</view><view wx:if="{{item.key === 'album'}}" class="sg-muted sg-module-id">{{summary.space.albumId}}</view></view></view>
-    </view>
-    <view wx:elif="{{!error}}" class="admin-loading-card admin-loading-card--page motion-fade-up motion-delay-2">
-      <view class="admin-loading-card__orb">
-        <view class="admin-loading-card__spinner"></view>
+    <block wx:if="{{summary}}">
+      <view class="space-members">
+        <view class="space-member {{index === 0 ? 'space-member--left' : ''}}" wx:for="{{summary.space.members}}" wx:key="userId">
+          <view class="space-member__portrait">
+            <image wx:if="{{item.avatarUrl}}" class="space-member__avatar" src="{{item.avatarUrl}}" mode="aspectFill" />
+            <view wx:else class="space-member__avatar space-member__avatar--empty"><image src="/images/icons/user-brown.svg" mode="aspectFit" /></view>
+            <button wx:if="{{item.userId === summary.userId}}" size="mini" class="space-member__edit" bindtap="editProfile" hover-class="space-pressed" aria-label="编辑我的空间资料"><image src="./images/pencil.svg" mode="aspectFit" /></button>
+          </view>
+          <view class="space-member__info">
+            <text class="space-member__name">{{item.name}}</text>
+            <button class="space-mood {{index === 1 ? 'space-mood--blue' : ''}}" data-key="mood" bindtap="open" hover-class="space-pressed">{{item.todayMood}}</button>
+          </view>
+        </view>
       </view>
+      <view class="space-overview">
+        <view class="space-cover" data-key="album" bindtap="open" hover-class="space-pressed" role="button" aria-label="进入空间：{{summary.album.title || '空间相册'}}">
+          <view class="space-cover__body">
+            <view class="space-cover__heading"><text class="space-cover__title">{{summary.album.title || '空间相册'}}</text></view>
+            <view class="space-cover__visual">
+              <image wx:if="{{summary.album.coverUrl}}" class="space-cover__image" src="{{summary.album.coverUrl}}" mode="aspectFill" />
+              <view wx:else class="space-cover__empty">
+                <image src="./images/album.svg" class="space-cover__placeholder" mode="aspectFit" />
+              </view>
+            </view>
+            <view class="space-cover__caption">
+              <view class="space-cover__entry"><text>点击进入</text><text class="space-cover__arrow">›</text></view>
+            </view>
+          </view>
+        </view>
+        <anniversary-card entries="{{summary.anniversaries}}" today="{{summary.today}}" data-key="anniversary" bind:manage="open" />
+      </view>
+      <view wx:if="{{summary.space.letter}}" class="space-letter {{letterOpen ? 'space-letter--open' : ''}}">
+        <button class="space-letter__heading" bindtap="toggleLetter" hover-class="space-pressed" aria-label="{{letterOpen ? '收起写给我们的信' : '打开写给我们的信'}}">
+          <image class="space-letter__icon" src="./images/letter.svg" mode="aspectFit" />
+          <text class="space-letter__title">写给我们的信</text>
+          <image class="space-arrow {{letterOpen ? 'space-arrow--down' : ''}}" src="./images/arrow.svg" mode="aspectFit" />
+        </button>
+        <view wx:if="{{letterOpen}}" class="space-letter__body">{{summary.space.letter}}</view>
+      </view>
+      <view class="space-modules">
+        <button class="space-module" wx:for="{{modules}}" wx:key="key" data-key="{{item.key}}" bindtap="open" hover-class="space-module--pressed">
+          <image class="space-module__icon" src="./images/{{item.key}}.svg" mode="aspectFit" />
+          <text class="space-module__label">{{item.label}}</text>
+          <image class="space-arrow" src="./images/arrow.svg" mode="aspectFit" />
+        </button>
+      </view>
+    </block>
+    <view wx:elif="{{!error}}" class="admin-loading-card admin-loading-card--page motion-fade-up motion-delay-2">
+      <view class="admin-loading-card__orb"><view class="admin-loading-card__spinner"></view></view>
       <text class="admin-loading-card__title">拾光中......</text>
       <text class="admin-loading-card__desc">正在加载页面</text>
     </view>
   </view>
 </template>
 <view class="sg-page">
-  <block wx:if="{{summary.publishState !== 'beta'}}"><primary-page-shell title="{{summary.space.name || '拾光空间'}}" subtitle="把日子，慢慢写成我们的故事"/><scroll-view class="sg-scroll" scroll-y><template is="space-content" data="{{summary,error,letterOpen,modules}}"/></scroll-view><app-bottom-nav currentPath="pages/shiguang/index"/></block>
-  <secondary-page-shell wx:else title="{{summary.space.name}}" fallbackRoute="/pages/profile/beta/index"><template is="space-content" data="{{summary,error,letterOpen,modules}}"/></secondary-page-shell>
+  <block wx:if="{{summary.publishState !== 'beta'}}">
+    <primary-page-shell title="{{summary.space.name || '拾光空间'}}" subtitle="把日子，慢慢写成我们的故事" />
+    <scroll-view class="sg-scroll" scroll-y show-scrollbar="{{false}}"><template is="space-content" data="{{summary,error,letterOpen,modules}}" /></scroll-view>
+    <app-bottom-nav currentPath="pages/shiguang/index" />
+  </block>
+  <secondary-page-shell wx:else title="{{summary.space.name}}" fallbackRoute="/pages/profile/beta/index"><template is="space-content" data="{{summary,error,letterOpen,modules}}" /></secondary-page-shell>
 </view>
