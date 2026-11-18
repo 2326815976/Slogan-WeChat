@@ -1,4 +1,3 @@
-const { getSession, extractSessionUser } = require("../services/photo-api");
 const {
   buildRuntimeConfigPreset,
   getDisplayedTabBarItems,
@@ -74,10 +73,16 @@ Component({
   },
   lifetimes: {
     attached() {
+      this._detached = false;
       const app = typeof getApp === "function" ? getApp() : null;
       const globalData = app && app.globalData ? app.globalData : {};
       const auditConfigReady = Boolean(globalData.auditConfigReady);
       const bootRuntimeConfig = globalData.runtimeConfig || buildRuntimeConfigPreset("standard");
+
+      // 先使用当前会话已确认的状态，避免每个 Tab 首帧都退回游客菜单。
+      this._unsubscribeMembership = shiguang.subscribeMembership((member) => {
+        this.applyLoginState(Boolean(member && member.userId));
+      });
 
       if (auditConfigReady) {
         this.applyRuntimeConfig(bootRuntimeConfig);
@@ -118,6 +123,9 @@ Component({
       this.refreshLoginState();
     },
     detached() {
+      this._detached = true;
+      if (this._unsubscribeMembership) this._unsubscribeMembership();
+      this._unsubscribeMembership = null;
       this.releaseSwitchLock();
       if (typeof this._unsubscribeRuntimeConfig === "function") {
         this._unsubscribeRuntimeConfig();
@@ -251,20 +259,10 @@ Component({
       }
 
       try {
-        const session = await getSession();
-        const user = extractSessionUser(session);
         await shiguang.refreshMembership();
-        this.applyLoginState(Boolean(user && user.id));
-        shiguang.preferSpaceEntry();
+        if (!this._detached) shiguang.preferSpaceEntry();
       } catch (error) {
-        const errorCode = String((error && error.code) || "").trim();
-        if (
-          errorCode === "TRANSIENT_BACKEND" ||
-          (globalData.cloudRunService && globalData.backendReconnecting)
-        ) {
-          return;
-        }
-        this.applyLoginState(false);
+        // 会话服务统一处理权限失效；临时网络错误保留最近确认的菜单。
       }
     },
 
