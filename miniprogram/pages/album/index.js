@@ -178,7 +178,7 @@ Page({
     backendReconnecting: false,
 
     pageLoading: true,
-    pageLoadingTitle: "拾光中...",
+    pageLoadingTitle: "拾光中......",
     pageLoadingDescription: "正在加载页面",
     isLoggedIn: false,
     boundAlbums: [],

@@ -1,5 +1,5 @@
 const PAGE_LOADING_COPY = {
-  title: "拾光中...",
+  title: "拾光中......",
   description: "正在加载页面",
 };
 

@@ -1,4 +1,5 @@
 const { dbQuery, dbRpc } = require("../../services/photo-api");
+const { enterPreferredSpace } = require("../../services/shiguang-entry");
 const { resolvePublicUrl } = require("../../utils/storage-url");
 const {
   getHomeRedirectPath,
@@ -108,6 +109,7 @@ function resolveCurrentRouteFromStack() {
 
 Page({
   data: {
+    entryChecking: true,
     safeTop: 0,
     tagbarStickyTop: 0,
 
@@ -212,7 +214,7 @@ Page({
   },
 
   isHomePageActive() {
-    return Boolean(this._pageVisible) && resolveCurrentRouteFromStack() === "pages/index/index";
+    return Boolean(this._pageVisible) && !this.data.entryChecking && resolveCurrentRouteFromStack() === "pages/index/index";
   },
 
   normalizeHomeEntryPath(value) {
@@ -313,6 +315,12 @@ Page({
 
   async onShow() {
     this._pageVisible = true;
+    // 默认首页跳转必须等待拾光成员检查，避免先显示照片墙再跳回拾光。
+    const entryPromise = enterPreferredSpace();
+    if (getApp().globalData.shiguangEntryChecking) this.setData({ entryChecking: true });
+    const enteredSpace = await entryPromise;
+    if (enteredSpace || !this._pageVisible) return;
+    this.setData({ entryChecking: false });
     const app = typeof getApp === "function" ? getApp() : null;
     const appEnterSeq = Math.max(0, Number(app && app.globalData ? app.globalData.appEnterSeq : 0));
     const lastSeenAppEnterSeq = Math.max(0, Number(this._lastSeenAppEnterSeq || 0));
@@ -510,6 +518,7 @@ Page({
 
   startHomePageIfNeeded() {
     if (this.homeBootstrapped) return;
+    if (this.data.entryChecking) return;
     if (!this.shouldStayOnPoseHome() || this.data.auditChecking) return;
     if (!this.data.serviceMissing && !this.data.backendReady) return;
     this.homeBootstrapped = true;

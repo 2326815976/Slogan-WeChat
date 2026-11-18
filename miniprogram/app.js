@@ -1,6 +1,7 @@
 // app.js
 const config = require("./config");
 const { requestJson } = require("./utils/cloudrun");
+const { enterPreferredSpace, isNativePageReturnExpected } = require("./services/shiguang-entry");
 const {
   buildRuntimeConfigPreset,
   normalizeRuntimeConfigPayload,
@@ -444,10 +445,22 @@ App({
   },
 
   onShow() {
+    this.globalData.shiguangEntrySuspended = false;
+    if (this._returnFromNativePage) {
+      this._returnFromNativePage = false;
+      return;
+    }
     const currentSeq = Math.max(0, Number((this.globalData && this.globalData.appEnterSeq) || 0));
     const nextSeq = currentSeq + 1;
     this.globalData.appEnterSeq = nextSeq;
     this.globalData.appEnteredAt = Date.now();
+    // 每次打开或回到小程序都先解析拾光入口，不依赖底部组件挂载。
+    void enterPreferredSpace();
+  },
+
+  onHide() {
+    this.globalData.shiguangEntrySuspended = true;
+    this._returnFromNativePage = isNativePageReturnExpected();
   },
 
   notifyBackendStatusChange() {

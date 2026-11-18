@@ -316,7 +316,7 @@ Page({
     serviceMissing: false,
     isLoggedIn: false,
     loading: true,
-    pageLoadingTitle: "拾光中...",
+    pageLoadingTitle: "拾光中......",
     pageLoadingDescription: "正在加载页面",
     showLoginPrompt: false,
 

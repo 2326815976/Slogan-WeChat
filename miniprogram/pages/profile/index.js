@@ -346,7 +346,7 @@ Page({
     loading: true,
     authMode: "wechat_only",
     phoneLoginEnabled: false,
-    pageLoadingTitle: "拾光中...",
+    pageLoadingTitle: "拾光中......",
     pageLoadingDescription: "正在加载页面",
     isLoggedIn: false,
     userId: "",

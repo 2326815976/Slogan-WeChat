@@ -1,1 +1,2 @@
 @import './shared.wxss';
+@import '../../styles/admin-loading.wxss';

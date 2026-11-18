@@ -118,6 +118,7 @@ async function refreshMembership() {
   pending.promise = api('/membership').then(result => {
     if (getStoredCookie() !== cookie || membershipPending !== pending) return null;
     updateMembership(result, cookie);
+    getApp().globalData.shiguangEntryFailed = false;
     return result;
   }).catch(error => {
     // 网络失败不等于解绑或退出；仅确定的权限拒绝清除入口。
@@ -131,20 +132,49 @@ function withSpaceTab(items, loggedIn) {
   if (!loggedIn || !member || !member.enabled) return items;
   return [{ key: 'shiguang', iconKey: 'hearts', pagePath: 'pages/shiguang/index', displayText: '拾光' }, ...items];
 }
-function chooseImage() { return new Promise((resolve, reject) => wx.chooseMedia({ count: 1, mediaType: ['image'], sourceType: ['camera', 'album'], success: result => resolve(result.tempFiles[0].tempFilePath), fail: reject })); }
+async function chooseImage() {
+  const data = getApp().globalData;
+  data.shiguangMediaChoosing = true;
+  try {
+    return await new Promise((resolve, reject) => wx.chooseMedia({ count: 1, mediaType: ['image'], sourceType: ['camera', 'album'], success: result => resolve(result.tempFiles[0].tempFilePath), fail: reject }));
+  } finally {
+    data.shiguangMediaChoosing = false;
+  }
+}
 function confirm(content) { return new Promise(resolve => wx.showModal({ title: '请确认', content, success: r => resolve(r.confirm), fail: () => resolve(false) })); }
-function preferSpaceEntry() {
+let entryNavigation = null;
+function preferSpaceEntry(options = {}) {
   const app = getApp(), data = app.globalData, member = getMembership();
-  if (!member || !member.enabled) return;
+  if (data.shiguangEntrySuspended || data.shiguangEntryChecking || data.shiguangEntryFailed || !member || !member.enabled) return false;
   const key = `${data.appEnterSeq || 0}:${member.userId}`;
-  if (data.shiguangEntryHandled === key) return;
   const pages = getCurrentPages(), current = pages[pages.length - 1];
+  if (data.shiguangEntryHandled === key) {
+    return entryNavigation && entryNavigation.key === key ? entryNavigation.promise : Boolean(current && current.route === 'pages/shiguang/index');
+  }
   if (current && current.route === 'pages/shiguang/index') {
     data.shiguangEntryHandled = key;
-    return;
+    return true;
   }
-  if (!current || !['pages/index/index', 'pages/album/index', 'pages/gallery/index', 'pages/booking/index', 'pages/profile/index'].includes(current.route)) return;
+  if (!current || !options.appEntry && !['pages/index/index', 'pages/album/index', 'pages/gallery/index', 'pages/booking/index', 'pages/profile/index'].includes(current.route)) return false;
   data.shiguangEntryHandled = key;
-  wx.reLaunch({ url: '/pages/shiguang/index' });
+  let finish;
+  const navigation = { key, promise: new Promise(resolve => { finish = resolve; }) };
+  entryNavigation = navigation;
+  const failed = () => {
+    if (data.shiguangEntryHandled === key) data.shiguangEntryHandled = '';
+    if (entryNavigation === navigation) entryNavigation = null;
+    finish(false);
+  };
+  try {
+    wx.reLaunch({
+      url: '/pages/shiguang/index',
+      success: () => finish(true),
+      fail: failed,
+      complete: () => { if (entryNavigation === navigation) entryNavigation = null; },
+    });
+  } catch (error) {
+    failed();
+  }
+  return navigation.promise;
 }
 module.exports = { api, upload, mediaLinks, summary, uuid, time, manage, fail, getMembership, subscribeMembership, refreshMembership, withSpaceTab, chooseImage, confirm, preferSpaceEntry };

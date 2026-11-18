@@ -1,5 +1,5 @@
 <view class="page {{pageIsStandalone ? 'page--preview' : ''}}">
-  <view class="boot-loading" wx:if="{{runtimeConfigError || (!auditChecking && !homeRedirectPath && !pageIsStandalone)}}">
+  <view class="boot-loading" wx:if="{{!entryChecking && (runtimeConfigError || (!auditChecking && !homeRedirectPath && !pageIsStandalone))}}">
     <view class="admin-loading-card admin-loading-card--page">
       <text class="admin-loading-card__title">{{runtimeConfigError ? '页面暂时无法加载' : '暂无开放页面'}}</text>
       <text class="admin-loading-card__desc">{{runtimeConfigError ? '请检查网络后重试' : '请稍后再来看看'}}</text>
@@ -8,7 +8,7 @@
   </view>
   <primary-page-shell
     managedPageKey="{{pageIsStandalone ? '' : 'pose'}}"
-    wx:if="{{!auditChecking && backendReady && (pageIsStandalone || homeRedirectPath === 'pages/index/index' || betaPoseBypassAllowed)}}"
+    wx:if="{{!entryChecking && !auditChecking && backendReady && (pageIsStandalone || homeRedirectPath === 'pages/index/index' || betaPoseBypassAllowed)}}"
     title="{{pageIsStandalone ? '摆姿推荐' : '拾光谣'}}"
     subtitle="{{pageIsStandalone ? '' : '✨ 记录此刻的不期而遇 ✨'}}"
     showBack="{{pageIsStandalone}}"
@@ -19,17 +19,17 @@
     animateIn="{{pageReady}}"
   />
 
-  <view class="boot-loading motion-fade-up motion-delay-2" wx:if="{{!runtimeConfigError && !serviceMissing && !backendReady}}">
+  <view class="boot-loading motion-fade-up motion-delay-2" wx:if="{{entryChecking || (!runtimeConfigError && (auditChecking || (!serviceMissing && !backendReady)))}}">
     <view class="admin-loading-card admin-loading-card--page">
       <view class="admin-loading-card__orb">
         <view class="admin-loading-card__spinner"></view>
       </view>
-      <text class="admin-loading-card__title">拾光中...</text>
-      <text class="admin-loading-card__desc">重连服务器中，请等待</text>
+      <text class="admin-loading-card__title">拾光中......</text>
+      <text class="admin-loading-card__desc">正在加载页面</text>
     </view>
   </view>
 
-  <view class="content {{pageIsStandalone ? 'content--preview' : ''}}" wx:if="{{!auditChecking && backendReady && (pageIsStandalone || homeRedirectPath === 'pages/index/index' || betaPoseBypassAllowed)}}">
+  <view class="content {{pageIsStandalone ? 'content--preview' : ''}}" wx:if="{{!entryChecking && !auditChecking && backendReady && (pageIsStandalone || homeRedirectPath === 'pages/index/index' || betaPoseBypassAllowed)}}">
     <!-- 配置缺失提示 -->
     <view class="config-tip motion-fade-up motion-delay-1" wx:if="{{serviceMissing}}">
       <text class="config-tip__title">需要配置云托管服务名</text>
@@ -57,39 +57,13 @@
       <view class="tag-all-btn" hover-class="tag-all-btn--active" hover-stay-time="80" wx:if="{{tags.length > 0}}" bindtap="openTagSelector">全部</view>
     </view>
 
-    <!-- 骨架屏 -->
-    <view class="skeleton-wrap {{pageIsStandalone ? 'skeleton-wrap--preview' : ''}} motion-fade-up motion-delay-2" wx:if="{{!currentPose}}">
-      <view class="skeleton-tags-row">
-        <view class="skeleton-tags-scroll">
-          <view class="skeleton-tags-inner">
-            <view
-              class="skeleton-tag"
-              wx:for="{{skeletonTags}}"
-              wx:key="*this"
-              style="width: {{120 + (index % 3) * 40}}rpx; animation-delay: {{index * 0.05}}s;"
-            ></view>
-          </view>
-        </view>
-        <view class="skeleton-all"></view>
+    <!-- 页面首次加载与其他底部菜单保持一致。 -->
+    <view class="admin-loading-card admin-loading-card--page motion-fade-up motion-delay-2" wx:if="{{!currentPose}}">
+      <view class="admin-loading-card__orb">
+        <view class="admin-loading-card__spinner"></view>
       </view>
-
-      <view class="skeleton-pose">
-        <view class="skeleton-tape"></view>
-        <view class="skeleton-card">
-          <text class="skeleton-doodle">📷</text>
-          <view class="skeleton-img">
-            <view class="skeleton-shimmer"></view>
-          </view>
-          <view class="skeleton-chips">
-            <view
-              class="skeleton-chip"
-              wx:for="{{skeletonChips}}"
-              wx:key="*this"
-              style="animation-delay: {{index * 0.1}}s;"
-            ></view>
-          </view>
-        </view>
-      </view>
+      <text class="admin-loading-card__title">拾光中......</text>
+      <text class="admin-loading-card__desc">正在加载页面</text>
     </view>
 
     <!-- 摆姿卡片 -->
@@ -201,7 +175,5 @@
       </view>
     </view>
   </view>
-
-  <view class="audit-guard" wx:if="{{auditChecking}}"></view>
 
 </view>

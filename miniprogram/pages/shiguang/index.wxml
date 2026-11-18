@@ -5,7 +5,14 @@
       <view class="sg-card sg-hero"><image src="{{summary.space.coverUrl}}" mode="aspectFill" class="sg-cover"/><view class="sg-members"><view class="sg-member" wx:for="{{summary.space.members}}" wx:key="userId"><image wx:if="{{item.avatarUrl}}" class="sg-avatar" src="{{item.avatarUrl}}" mode="aspectFill"/><text wx:else class="sg-avatar sg-center">♡</text><text>{{item.name}}</text><text class="sg-chip" data-key="mood" bindtap="open">{{item.todayMood}}</text><text wx:if="{{item.userId === summary.userId}}" class="sg-link" bindtap="editProfile">编辑我的资料</text></view></view></view>
       <view wx:if="{{summary.space.letter}}" class="sg-card sg-letter" bindtap="toggleLetter"><view class="sg-title">写给我们的信 {{letterOpen ? '⌃' : '⌄'}}</view><view wx:if="{{letterOpen}}" class="sg-text">{{summary.space.letter}}</view></view>
       <view class="sg-grid"><view class="sg-card sg-module" wx:for="{{modules}}" wx:key="key" data-key="{{item.key}}" bindtap="open"><view class="sg-module-icon">{{item.icon}}</view><view class="sg-title">{{item.label}}</view><view class="sg-muted">{{item.description}}</view><view wx:if="{{item.key === 'album'}}" class="sg-muted sg-module-id">{{summary.space.albumId}}</view></view></view>
-    </view><view wx:else class="sg-card">正在打开我们的拾光…</view>
+    </view>
+    <view wx:elif="{{!error}}" class="admin-loading-card admin-loading-card--page motion-fade-up motion-delay-2">
+      <view class="admin-loading-card__orb">
+        <view class="admin-loading-card__spinner"></view>
+      </view>
+      <text class="admin-loading-card__title">拾光中......</text>
+      <text class="admin-loading-card__desc">正在加载页面</text>
+    </view>
   </view>
 </template>
 <view class="sg-page">

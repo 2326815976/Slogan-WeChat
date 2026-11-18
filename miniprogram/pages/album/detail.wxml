@@ -13,18 +13,12 @@
       <text class="config-tip__desc">请在 miniprogram/config.js 中填写 cloudRunService（用于 X-WX-SERVICE）</text>
     </view>
 
-    <view class="loading motion-fade-up motion-delay-2" wx:if="{{loading && !album}}">
-      <view class="loading-ring">
-        <view class="ring ring--outer"></view>
-        <view class="ring ring--inner"></view>
-        <view class="ring-center">
-          <image class="center-icon" src="/images/icons/sparkles-yellow.svg" mode="aspectFit" />
-        </view>
+    <view class="admin-loading-card admin-loading-card--page motion-fade-up motion-delay-2" wx:if="{{loading && !album}}">
+      <view class="admin-loading-card__orb">
+        <view class="admin-loading-card__spinner"></view>
       </view>
-      <view class="loading-text">
-        <text class="loading-title">{{backendReconnecting ? '重连中...' : '加载中...'}}</text>
-        <text class="loading-desc">{{backendReconnecting ? '重连服务器中，请等待' : '正在为你打开相册'}}</text>
-      </view>
+      <text class="admin-loading-card__title">拾光中......</text>
+      <text class="admin-loading-card__desc">正在加载页面</text>
     </view>
 
     <view wx:if="{{album}}">
@@ -105,7 +99,7 @@
             <view class="admin-loading-card__orb">
               <view class="admin-loading-card__spinner"></view>
             </view>
-            <text class="admin-loading-card__title">拾光中...</text>
+            <text class="admin-loading-card__title">拾光中......</text>
             <text class="admin-loading-card__desc">正在加载页面</text>
           </view>
         </view>

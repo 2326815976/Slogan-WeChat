@@ -163,7 +163,7 @@ function resolveGalleryLoadingCopy(runtimeConfig, isLoggedIn) {
     "照片墙";
 
   return {
-    title: "拾光中...",
+    title: "拾光中......",
     pageDescription: "正在加载页面",
     switchDescription: "正在加载页面",
   };
@@ -947,7 +947,7 @@ Page({
     pendingSwitchPhotoIds: [],
     loadingMore: false,
     hasMore: true,
-    pageLoadingTitle: "拾光中...",
+    pageLoadingTitle: "拾光中......",
     pageLoadingDescription: "正在加载页面",
 
     isLoggedIn: false,
