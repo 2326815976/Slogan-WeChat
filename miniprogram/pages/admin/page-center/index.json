@@ -3,6 +3,6 @@
   "navigationBarTitleText": "页面管理",
   "usingComponents": {
     "secondary-page-shell": "/components/secondary-page-shell/index",
-    "page-center-panel": "/components/admin/page-center-panel/index"
+    "page-center-panel": "/pages/admin/components/page-center-panel/index"
   }
 }

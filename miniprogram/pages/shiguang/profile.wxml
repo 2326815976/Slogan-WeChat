@@ -1,1 +1,26 @@
-<secondary-page-shell title="我的空间资料" fallbackRoute="/pages/shiguang/index"><view class="sg-content"><view wx:if="{{error}}" class="sg-error">{{error}}</view><view class="sg-card"><view class="sg-muted">名称与头像仅用于拾光空间</view><view class="sg-label">名称</view><input class="sg-input" value="{{name}}" maxlength="100" bindinput="nameInput"/><image wx:if="{{avatarUrl}}" src="{{avatarUrl}}" class="sg-avatar" mode="aspectFill"/><button class="sg-button" disabled="{{busy}}" bindtap="avatar">更换头像</button><button class="sg-button" loading="{{busy}}" disabled="{{busy}}" bindtap="save">保存</button></view></view></secondary-page-shell>
+<secondary-page-shell title="我的空间资料" scroll-y="{{!formOpen}}" fallbackRoute="/pages/shiguang/index">
+  <view class="sg-content">
+    <view wx:if="{{!formOpen && error}}" class="sg-error">{{error}}</view>
+    <view wx:if="{{profile}}" class="sg-card sg-center">
+      <image class="sg-avatar" src="{{profile.avatarUrl || '/images/icons/user-brown.svg'}}" mode="aspectFill"/>
+      <view class="sg-title">{{profile.name}}</view>
+      <view class="sg-muted">名称与头像仅用于拾光空间</view>
+      <button class="sg-button" bindtap="open">编辑资料</button>
+    </view>
+    <view wx:elif="{{!error}}" class="sg-muted">正在加载空间资料…</view>
+  </view>
+</secondary-page-shell>
+<space-dialog wx:if="{{formOpen}}" title="编辑空间资料" subtitle="名称与头像仅用于拾光空间" busy="{{busy}}" bind:close="close">
+  <view class="sg-stack">
+    <view class="sg-row profile-avatar-editor">
+      <image class="sg-avatar" src="{{avatarUrl || '/images/icons/user-brown.svg'}}" mode="aspectFill"/>
+      <button class="sg-action" disabled="{{busy}}" bindtap="avatar">{{avatarUrl ? '更换头像' : '选择头像'}}</button>
+    </view>
+    <label class="sg-field"><text class="sg-label">名称</text><input class="sg-input" value="{{name}}" maxlength="100" disabled="{{busy}}" bindinput="nameInput"/></label>
+    <view wx:if="{{error}}" class="sg-error">{{error}}</view>
+    <view class="sg-actions">
+      <button class="sg-action" disabled="{{busy}}" bindtap="close">取消</button>
+      <button class="sg-action sg-action--primary" loading="{{busy}}" disabled="{{busy || !name}}" bindtap="save">保存资料</button>
+    </view>
+  </view>
+</space-dialog>

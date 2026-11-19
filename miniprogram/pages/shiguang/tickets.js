@@ -1,8 +1,14 @@
 const sg = require('../../services/shiguang');
 const DRAW_KEY = JSON.stringify(['draw', {}]);
+const SECTIONS = [
+  { id: 'wheel', label: '转盘抽奖' },
+  { id: 'gifts', label: '赠送卡券' },
+  { id: 'history', label: '奖券记录' },
+];
 
 Page({
   data: {
+    sections: SECTIONS, section: 'wheel', loaded: false,
     summary: null, pool: [], canDraw: false, retryDraw: false, own: [], cards: [], tickets: [], grants: [],
     balance: 0, partnerBalance: 0, partnerName: '', angle: 0, gradient: '#FBEFCB', amount: '1',
     form: '', formTitle: '', name: '', content: '', image: '', imageUrl: '', editing: null,
@@ -12,7 +18,9 @@ Page({
   onShow() {
     if (!this.data.busy) this.load();
     clearInterval(this.timer);
-    this.timer = setInterval(() => { if (!this.data.busy && !this.loading) this.load(); }, 5000);
+    this.timer = setInterval(() => {
+      if (!this.data.busy && !this.loading) this.load({ background: true });
+    }, 5000);
   },
   onHide() { clearInterval(this.timer); }, onUnload() { clearInterval(this.timer); },
   memberName(summary, id) {
@@ -25,19 +33,22 @@ Page({
       time: sg.time(item.obtainedAt), usedTime: sg.time(item.usedAt), canRedeem: item.providerId === summary.userId && item.status === 'unused',
     } : { ...item, giver: name(item.giverId), receiver: name(item.receiverId), time: sg.time(item.createdAt) });
   },
-  async load() {
+  async load({ background = false } = {}) {
     const loading = {};
     this.loading = loading;
+    const preserveHistory = page => background && this.data.section === 'history' && page > 0;
     try {
       const [summary, prizes, cards, tickets, grants] = await Promise.all([
-        sg.api(), sg.api('/prizes'), sg.api('/gift-cards'), sg.api('/tickets?page=0'), sg.api('/grants?page=0'),
+        sg.api(), sg.api('/prizes'), sg.api('/gift-cards'),
+        preserveHistory(this.ticketsPage) ? null : sg.api('/tickets?page=0'),
+        preserveHistory(this.grantsPage) ? null : sg.api('/grants?page=0'),
       ]);
       if (this.loading !== loading) return;
       const partner = summary.space.members.find(member => member.userId !== summary.userId);
       const balance = summary.balances[summary.userId] || 0;
       this.setData({ summary, balance, partnerName: partner.name, partnerBalance: summary.balances[partner.userId] || 0 });
 
-      const links = await sg.mediaLinks([...prizes.items, ...cards.items, ...tickets.items].map(item => item.image));
+      const links = await sg.mediaLinks([...prizes.items, ...cards.items, ...(tickets?.items || [])].map(item => item.image));
       if (this.loading !== loading) return;
       const offering = item => ({ ...item, imageUrl: links[item.image] || '', time: sg.time(item.createdAt),
         provider: this.memberName(summary, item.providerId), recipient: this.memberName(summary, item.drawerId || item.holderId),
@@ -49,17 +60,32 @@ Page({
       }));
       const colors = ['#FFE2AE', '#F6C6C6', '#DCE7D1', '#FBEFCB'];
       const segments = pool.map((item, index) => `${colors[index % 4]} ${index * 100 / pool.length}% ${(index + 1) * 100 / pool.length}%`);
-      this.ticketsPage = 0;
-      this.grantsPage = 0;
-      this.setData({ pool, own: prizeItems.filter(item => item.own), cards: cards.items.map(offering),
+      const history = {};
+      if (tickets && !preserveHistory(this.ticketsPage)) {
+        this.ticketsPage = 0;
+        history.tickets = this.historyItems('tickets', tickets.items, summary, links);
+        history.ticketMore = tickets.hasMore;
+      }
+      if (grants && !preserveHistory(this.grantsPage)) {
+        this.grantsPage = 0;
+        history.grants = this.historyItems('grants', grants.items, summary, links);
+        history.grantMore = grants.hasMore;
+      }
+      this.setData({ pool, own: prizeItems.filter(item => item.own), cards: cards.items.map(offering), loaded: true,
         canDraw: pool.length > 0, gradient: pool.length ? `conic-gradient(${segments.join(',')})` : '#FBEFCB',
-        tickets: this.historyItems('tickets', tickets.items, summary, links), ticketMore: tickets.hasMore,
-        grants: this.historyItems('grants', grants.items, summary, links), grantMore: grants.hasMore,
+        ...history,
       });
     } catch (error) { if (this.loading === loading) sg.fail(this, error); }
     finally { if (this.loading === loading) this.loading = null; }
   },
+  selectSection(event) {
+    const { section } = event.currentTarget.dataset;
+    if (section !== this.data.section && !this.data.busy) this.setData({ section, message: '' });
+  },
   input(event) { this.setData({ [event.currentTarget.dataset.key]: event.detail.value }); },
+  openGrant() {
+    if (!this.data.busy && this.data.summary) this.setData({ form: 'grant', formTitle: '赠送抽奖次数', amount: '1', error: '' });
+  },
   openForm(event) {
     if (this.data.busy) return;
     const { mode, id } = event.currentTarget.dataset;
@@ -71,7 +97,7 @@ Page({
       editing: record, name: record?.name || '', content: record?.content || '', image: record?.image || '', imageUrl: record?.imageUrl || '', error: '',
     });
   },
-  cancel() { if (!this.data.busy) this.setData({ form: '', editing: null }); },
+  cancel() { if (!this.data.busy) this.setData({ form: '', editing: null, error: '' }); },
   clearImage() { if (!this.data.busy) this.setData({ image: '', imageUrl: '' }); },
   async mutate(work) {
     if (this.data.busy) return;
@@ -111,7 +137,7 @@ Page({
       } else {
         this.setData({ message: operation === 'grant' ? '抽奖次数已送达' : operation === 'send-card' ? '心意已送达' : '已记录兑现时间' });
       }
-      if (operation === 'send-card' && this.data.editing?.id === data.cardId) this.setData({ form: '', editing: null });
+      if (operation === 'grant' || (operation === 'send-card' && this.data.editing?.id === data.cardId)) this.setData({ form: '', editing: null });
       await Promise.all([this.load(), spin]);
     });
   },

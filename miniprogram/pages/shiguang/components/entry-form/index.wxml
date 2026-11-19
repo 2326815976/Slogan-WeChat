@@ -1,13 +1,56 @@
-<view class="sg-card">
-  <view class="sg-title">{{entry ? '编辑记录' : '新增记录'}}</view>
-  <block wx:if="{{kind === 'anniversary' || kind === 'collection'}}"><view class="sg-label">名称</view><input class="sg-input" maxlength="100" value="{{draft.name}}" data-key="name" bindinput="input"/></block>
-  <block wx:if="{{kind === 'anniversary'}}"><picker mode="date" value="{{draft.date}}" data-key="date" bindchange="input"><view class="sg-input">{{draft.date || '选择日期'}}</view></picker><view class="sg-row"><button size="mini" class="sg-button" data-key="direction" data-value="up" bindtap="choice">{{draft.direction === 'up' ? '✓ ' : ''}}纪念日</button><button size="mini" class="sg-button" data-key="direction" data-value="down" bindtap="choice">{{draft.direction === 'down' ? '✓ ' : ''}}倒数日</button></view></block>
-  <block wx:if="{{kind === 'anniversary'}}"><view class="sg-label">排序（越小越靠前）</view><input class="sg-input" type="number" maxlength="5" value="{{draft.sortOrder}}" placeholder="0" data-key="sortOrder" bindinput="input"/></block>
-  <block wx:if="{{kind === 'promise' || kind === 'whisper'}}"><view class="sg-label">标题</view><input class="sg-input" maxlength="100" value="{{draft.title}}" data-key="title" bindinput="input"/></block>
-  <block wx:if="{{kind === 'whisper'}}"><view class="sg-row"><button size="mini" class="sg-button" disabled="{{busy}}" data-key="type" data-value="text" bindtap="choice">{{draft.type === 'text' ? '✓ ' : ''}}文字</button><button size="mini" class="sg-button" disabled="{{busy}}" data-key="type" data-value="audio" bindtap="choice">{{draft.type === 'audio' ? '✓ ' : ''}}音频</button></view><view wx:if="{{draft.type === 'audio'}}"><button class="sg-button" disabled="{{busy && !recording}}" bindtap="record">{{recording ? '结束录音' : '开始录音（最长 3 分钟）'}}</button><button wx:if="{{audioUrl}}" class="sg-button" bindtap="play">回听录音</button></view></block>
-  <block wx:if="{{kind === 'collection'}}"><image wx:if="{{imageUrl}}" src="{{imageUrl}}" class="sg-small-image" mode="aspectFit"/><button class="sg-button" disabled="{{busy}}" bindtap="image">拍照 / 选择小物照片</button><view class="sg-label">地点</view><input class="sg-input" maxlength="200" value="{{draft.location}}" data-key="location" bindinput="input"/></block>
-  <block wx:if="{{kind !== 'anniversary' && kind !== 'mood'}}"><view class="sg-label">{{kind === 'wish' ? '愿望' : '内容'}}</view><textarea class="sg-input sg-area" maxlength="{{kind === 'wish' ? 5000 : 10000}}" value="{{draft.content}}" data-key="content" bindinput="input"/></block>
-  <view wx:if="{{kind === 'wish'}}" class="sg-row"><button size="mini" class="sg-button" data-key="status" data-value="pending" bindtap="choice">{{draft.status === 'pending' ? '✓ ' : ''}}未实现</button><button size="mini" class="sg-button" data-key="status" data-value="fulfilled" bindtap="choice">{{draft.status === 'fulfilled' ? '✓ ' : ''}}已实现</button></view>
-  <block wx:if="{{kind === 'mood'}}"><view class="sg-label">今天的心情</view><input class="sg-input" maxlength="30" value="{{draft.mood}}" data-key="mood" bindinput="input"/><view class="sg-label">描述（可选）</view><textarea class="sg-input sg-area" maxlength="1000" value="{{draft.description}}" data-key="description" bindinput="input"/><view class="sg-muted">北京时间每天一条，只能修改当天记录。</view></block>
-  <view wx:if="{{error}}" class="sg-error">{{error}}</view><view class="sg-row"><button class="sg-button" disabled="{{busy}}" loading="{{busy}}" bindtap="save">保存</button><button class="sg-button" disabled="{{busy}}" bindtap="cancel">取消</button></view>
-</view>
+<space-dialog title="{{(entry ? '编辑' : '新增') + (kind === 'mood' ? '今日心情' : title)}}" busy="{{busy}}" bind:close="cancel">
+  <view class="sg-stack">
+    <label wx:if="{{kind === 'anniversary' || kind === 'collection'}}" class="sg-field">
+      <text class="sg-label">名称</text><input class="sg-input" maxlength="100" value="{{draft.name}}" disabled="{{busy}}" data-key="name" bindinput="input"/>
+    </label>
+    <block wx:if="{{kind === 'anniversary'}}">
+      <view class="sg-field">
+        <text class="sg-label">日期</text><picker mode="date" value="{{draft.date}}" disabled="{{busy}}" data-key="date" bindchange="input"><view class="sg-input">{{draft.date || '选择日期'}}</view></picker>
+      </view>
+      <view class="sg-actions">
+        <button class="sg-action {{draft.direction === 'up' ? 'sg-action--selected' : ''}}" disabled="{{busy}}" data-key="direction" data-value="up" bindtap="choice">纪念日</button>
+        <button class="sg-action {{draft.direction === 'down' ? 'sg-action--selected' : ''}}" disabled="{{busy}}" data-key="direction" data-value="down" bindtap="choice">倒数日</button>
+      </view>
+      <label class="sg-field">
+        <text class="sg-label">排序（越小越靠前）</text><input class="sg-input" type="number" maxlength="5" value="{{draft.sortOrder}}" placeholder="0" disabled="{{busy}}" data-key="sortOrder" bindinput="input"/>
+      </label>
+    </block>
+    <label wx:if="{{kind === 'promise' || kind === 'whisper'}}" class="sg-field">
+      <text class="sg-label">标题</text><input class="sg-input" maxlength="100" value="{{draft.title}}" disabled="{{busy}}" data-key="title" bindinput="input"/>
+    </label>
+    <block wx:if="{{kind === 'whisper'}}">
+      <view class="sg-actions">
+        <button class="sg-action {{draft.type === 'text' ? 'sg-action--selected' : ''}}" disabled="{{busy}}" data-key="type" data-value="text" bindtap="choice">文字</button>
+        <button class="sg-action {{draft.type === 'audio' ? 'sg-action--selected' : ''}}" disabled="{{busy}}" data-key="type" data-value="audio" bindtap="choice">音频</button>
+      </view>
+      <view wx:if="{{draft.type === 'audio'}}" class="sg-stack">
+        <button class="sg-action" disabled="{{busy && !recording}}" bindtap="record">{{recording ? '结束录音' : '开始录音（最长 3 分钟）'}}</button>
+        <button wx:if="{{audioUrl}}" class="sg-action" disabled="{{busy}}" bindtap="play">回听录音</button>
+      </view>
+    </block>
+    <block wx:if="{{kind === 'collection'}}">
+      <image wx:if="{{imageUrl}}" src="{{imageUrl}}" class="sg-cover" mode="aspectFit"/>
+      <button class="sg-action" disabled="{{busy}}" bindtap="image">{{imageUrl ? '更换小物照片' : '拍照 / 选择小物照片'}}</button>
+      <label class="sg-field">
+        <text class="sg-label">地点</text><input class="sg-input" maxlength="200" value="{{draft.location}}" disabled="{{busy}}" data-key="location" bindinput="input"/>
+      </label>
+    </block>
+    <label wx:if="{{kind !== 'anniversary' && kind !== 'mood'}}" class="sg-field">
+      <text class="sg-label">{{kind === 'wish' ? '愿望' : '内容'}}</text><textarea class="sg-input sg-area" maxlength="{{kind === 'wish' ? 5000 : 10000}}" value="{{draft.content}}" disabled="{{busy}}" data-key="content" bindinput="input"/>
+    </label>
+    <view wx:if="{{kind === 'wish'}}" class="sg-actions">
+      <button class="sg-action {{draft.status === 'pending' ? 'sg-action--selected' : ''}}" disabled="{{busy}}" data-key="status" data-value="pending" bindtap="choice">未实现</button>
+      <button class="sg-action {{draft.status === 'fulfilled' ? 'sg-action--selected' : ''}}" disabled="{{busy}}" data-key="status" data-value="fulfilled" bindtap="choice">已实现</button>
+    </view>
+    <block wx:if="{{kind === 'mood'}}">
+      <label class="sg-field"><text class="sg-label">今天的心情</text><input class="sg-input" maxlength="30" value="{{draft.mood}}" disabled="{{busy}}" data-key="mood" bindinput="input"/></label>
+      <label class="sg-field"><text class="sg-label">描述（选填）</text><textarea class="sg-input sg-area" maxlength="1000" value="{{draft.description}}" disabled="{{busy}}" data-key="description" bindinput="input"/></label>
+      <view class="sg-muted">北京时间每天一条，只能修改当天记录。</view>
+    </block>
+    <view wx:if="{{error}}" class="sg-error">{{error}}</view>
+    <view class="sg-actions">
+      <button class="sg-action" disabled="{{busy}}" bindtap="cancel">取消</button>
+      <button class="sg-action sg-action--primary" disabled="{{busy}}" loading="{{busy && !recording}}" bindtap="save">保存</button>
+    </view>
+  </view>
+</space-dialog>

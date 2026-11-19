@@ -1,0 +1,7 @@
+<view class="admin-loading-card admin-loading-card--page">
+  <view class="admin-loading-card__orb">
+    <view class="admin-loading-card__spinner"></view>
+  </view>
+  <text class="admin-loading-card__title">拾光中...</text>
+  <text class="admin-loading-card__desc">正在加载照片管理，请稍候。</text>
+</view>

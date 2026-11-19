@@ -1,10 +1,14 @@
 {
   "usingComponents": {
-    "admin-access-denied": "/components/admin/access-denied/index",
-    "user-note": "/components/admin/user-note/index",
+    "admin-access-denied": "/pages/admin/components/access-denied/index",
+    "user-note": "/pages/admin/components/user-note/index",
     "map-picker": "/components/map-picker/index",
-    "gallery-manager": "/components/admin/gallery-manager/index",
-    "page-center-panel": "/components/admin/page-center-panel/index",
+    "gallery-manager": "/packages/admin-gallery/gallery-manager/index",
+    "gallery-loading": "/pages/admin/components/gallery-loading/index",
+    "page-center-panel": "/pages/admin/components/page-center-panel/index",
     "shiguang-manager": "/pages/admin/components/shiguang-manager/index"
+  },
+  "componentPlaceholder": {
+    "gallery-manager": "gallery-loading"
   }
 }

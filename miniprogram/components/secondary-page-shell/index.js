@@ -183,14 +183,15 @@ Component({
       return true;
     },
 
-    shouldPreferExplicitFallback() {
-      return Boolean(normalizeMiniProgramRouteUrl(this.properties.fallbackRoute));
-    },
-
     onBack() {
+      if (this._backPending) return;
       this.triggerEvent("back");
 
-      if (this.data.resolvedPreferFallback || this.shouldPreferExplicitFallback()) {
+      const fallbackPath = normalizeMiniProgramRoutePath(this.properties.fallbackRoute);
+      const pages = getCurrentPages();
+      const parentPath = normalizeMiniProgramRoutePath(pages[pages.length - 2]?.route);
+      const hasParent = Boolean(parentPath) && parentPath === (fallbackPath || this.data.resolvedFallbackTab);
+      if (!hasParent && (this.data.resolvedPreferFallback || fallbackPath)) {
         if (this.openFallbackRoute(() => this.openFallbackTab())) {
           return;
         }
@@ -198,6 +199,7 @@ Component({
         return;
       }
 
+      this._backPending = true;
       wx.navigateBack({
         delta: 1,
         fail: () => {
@@ -206,6 +208,7 @@ Component({
           }
           this.openFallbackTab();
         },
+        complete: () => { this._backPending = false; },
       });
     },
   },

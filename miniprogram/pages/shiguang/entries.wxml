@@ -1,8 +1,50 @@
-<secondary-page-shell title="{{title}}" fallbackRoute="/pages/shiguang/index"><view class="sg-content">
-  <view wx:if="{{error}}" class="sg-error">{{error}}</view><button wx:if="{{summary}}" class="sg-button" bindtap="add">{{kind === 'mood' ? '记录 / 编辑今日心情' : '新增记录'}}</button>
-  <view wx:if="{{kind === 'mood'}}" class="sg-row"><picker mode="date" value="{{date}}" bindchange="date"><view class="sg-link">{{date || '按日期查看'}}</view></picker><text class="sg-link" bindtap="clearDate">全部历史</text></view>
-  <entry-form wx:if="{{formOpen}}" kind="{{kind}}" entry="{{editing}}" bind:saved="saved" bind:cancel="cancel"/>
-  <view wx:if="{{loaded && !items.length}}" class="sg-card sg-center">这里还没有记录，写下我们的第一笔吧。</view>
-  <view wx:for="{{items}}" wx:key="id" class="sg-card"><view class="sg-title">{{item.payload.name || item.payload.title || item.payload.mood || '一个愿望'}}</view><view wx:if="{{kind === 'anniversary'}}"><view class="sg-title">{{item.payload.direction === 'down' ? '距离约定' : '一起走过'}} {{item.days}} 天</view><view class="sg-muted">{{item.payload.date}} · {{item.payload.direction === 'down' ? '倒数日' : '纪念日'}}</view></view><view wx:if="{{kind === 'wish'}}" class="sg-chip">{{item.payload.status === 'fulfilled' ? '已实现' : '未实现'}}</view><view wx:if="{{item.moodDate}}" class="sg-muted">{{item.moodDate}}</view><image wx:if="{{item.imageUrl}}" class="sg-cover" src="{{item.imageUrl}}" mode="aspectFit"/><view wx:if="{{item.payload.location}}" class="sg-muted">{{item.payload.location}}</view><view class="sg-text">{{item.payload.content || item.payload.description}}</view><button wx:if="{{item.payload.audio}}" class="sg-button" data-id="{{item.id}}" bindtap="play">播放录音</button><view class="sg-muted">{{item.author}} · {{item.time}}</view><view class="sg-row"><block wx:if="{{item.canManage}}"><text class="sg-link" data-id="{{item.id}}" bindtap="edit">编辑</text><text class="sg-link sg-danger" data-id="{{item.id}}" bindtap="remove">删除</text></block><text wx:if="{{kind === 'whisper'}}" class="sg-link" data-id="{{item.id}}" bindtap="replies">{{replyId === item.id ? '收起回复' : '查看 / 写回复'}}</text></view><space-replies wx:if="{{replyId === item.id}}" entryId="{{item.id}}" userId="{{summary.userId}}" members="{{summary.space.members}}"/></view>
-  <button wx:if="{{hasMore}}" class="sg-button" bindtap="more">更多记录</button>
-</view></secondary-page-shell>
+<secondary-page-shell title="{{title}}" scroll-y="{{!formOpen && !replyId}}" fallbackRoute="/pages/shiguang/index">
+  <view class="entries-content">
+    <view wx:if="{{error}}" class="sg-error">{{error}}</view>
+    <view wx:if="{{summary}}" class="entries-toolbar">
+      <button class="sg-action sg-action--primary" bindtap="add">{{actionLabel}}</button>
+      <view wx:if="{{kind === 'mood'}}" class="entries-filters">
+        <picker class="entries-date-picker" mode="date" value="{{date || summary.today}}" end="{{summary.today}}" bindchange="changeDate">
+          <view class="entries-date-control">
+            <text>{{date || '按日期筛选'}}</text>
+            <image src="./images/arrow.svg" mode="aspectFit" class="entries-filter-arrow" />
+          </view>
+        </picker>
+        <button wx:if="{{date}}" class="sg-action entries-clear" bindtap="clearDate">查看全部</button>
+      </view>
+    </view>
+    <view wx:if="{{!items.length && !error && (loaded || loading)}}" class="sg-card entries-empty sg-center sg-muted">
+      {{loading ? '正在加载记录…' : date ? '这一天没有心情记录。' : emptyLabel}}
+    </view>
+    <view wx:for="{{items}}" wx:key="id" class="sg-card">
+      <view class="entries-heading">
+        <view class="sg-title">{{item.payload.name || item.payload.title || item.payload.mood || '一条记录'}}</view>
+        <text wx:if="{{kind === 'wish'}}" class="sg-chip {{item.payload.status === 'fulfilled' ? 'entries-chip--fulfilled' : ''}}">{{item.payload.status === 'fulfilled' ? '已实现' : '未实现'}}</text>
+      </view>
+      <view wx:if="{{kind === 'anniversary'}}" class="entries-anniversary">
+        <view class="entries-count">
+          <text>{{item.payload.direction === 'down' ? (item.days < 0 ? '已过' : '距离约定') : (item.days < 0 ? '距离这一天' : '一起走过')}}</text>
+          <text class="entries-count__number">{{item.days < 0 ? -item.days : item.days}}</text>
+          <text>天</text>
+        </view>
+        <view class="sg-muted">{{item.payload.date}} · {{item.payload.direction === 'down' ? '倒数日' : '纪念日'}}</view>
+      </view>
+      <view wx:if="{{item.moodDate}}" class="sg-muted">心情日期 {{item.moodDate}}</view>
+      <image wx:if="{{item.imageUrl}}" class="sg-cover entries-cover" src="{{item.imageUrl}}" mode="aspectFit" lazy-load="{{true}}"/>
+      <view wx:if="{{item.payload.location}}" class="sg-muted">{{item.payload.location}}</view>
+      <view wx:if="{{item.payload.content || item.payload.description}}" class="sg-text">{{item.payload.content || item.payload.description}}</view>
+      <button wx:if="{{item.payload.audio}}" class="sg-button" data-id="{{item.id}}" bindtap="play">播放录音</button>
+      <view class="sg-muted entries-byline">{{item.author || '空间成员'}} · {{item.time}}</view>
+      <view wx:if="{{item.canManage || kind === 'whisper'}}" class="entries-actions sg-row">
+        <button wx:if="{{kind === 'whisper'}}" class="sg-action entries-action" data-id="{{item.id}}" bindtap="replies">查看与回复</button>
+        <block wx:if="{{item.canManage}}">
+          <button class="sg-action entries-action" data-id="{{item.id}}" bindtap="edit">编辑</button>
+          <button class="sg-action entries-action entries-action--danger" disabled="{{busy}}" data-id="{{item.id}}" bindtap="remove">删除</button>
+        </block>
+      </view>
+    </view>
+    <button wx:if="{{hasMore}}" class="sg-action" loading="{{loading}}" disabled="{{loading}}" bindtap="more">加载更多记录</button>
+  </view>
+</secondary-page-shell>
+<entry-form wx:if="{{formOpen}}" kind="{{kind}}" title="{{title}}" entry="{{editing}}" bind:saved="saved" bind:cancel="cancel"/>
+<space-replies wx:if="{{replyId}}" entryId="{{replyId}}" userId="{{summary.userId}}" members="{{summary.space.members}}" bind:close="closeReplies"/>

@@ -1,6 +1,7 @@
-const { dbQuery, dbRpc, getSession, requestJson, requestUpload } = require("./photo-api");
-const { getStoredCookie, subscribeStoredCookieClear } = require("../utils/auth");
-const { hasAdminAccess } = require("../utils/admin-access");
+// 管理员专用接口随管理分包加载，通用请求和权限判断仍复用主包实现。
+const { dbQuery, dbRpc, getSession, requestJson, requestUpload } = require("../../../services/photo-api");
+const { getStoredCookie, subscribeStoredCookieClear } = require("../../../utils/auth");
+const { hasAdminAccess } = require("../../../utils/admin-access");
 
 const ADMIN_BOOKING_STATUS = new Set([
   "pending",

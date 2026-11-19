@@ -1,9 +1,9 @@
-const { requireAdminSession } = require("../../../services/photo-admin-api");
-const { requestJson } = require("../../../services/photo-api");
+const { requireAdminSession } = require("../../services/photo-admin-api");
+const { requestJson } = require("../../../../services/photo-api");
 const {
   isTabBarPagePath,
   TAB_PAGE_OPTIONS,
-} = require("../../../utils/runtime-config");
+} = require("../../../../utils/runtime-config");
 
 const CHANNEL_META = {
   web: {

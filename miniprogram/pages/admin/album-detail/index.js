@@ -1,5 +1,5 @@
 const { dbQuery, requestUpload, requestJson } = require("../../../services/photo-api");
-const { requireAdminSession } = require("../../../services/photo-admin-api");
+const { requireAdminSession } = require("../services/photo-admin-api");
 const { resolvePublicUrl } = require("../../../utils/storage-url");
 const { setCachedAlbumRootName } = require("../../../utils/album-root-name-cache");
 const { markGalleryCacheDirty } = require("../../../utils/gallery-cache");
@@ -7,7 +7,7 @@ const {
   saveTransientPageState,
   loadTransientPageState,
   clearTransientPageState,
-} = require("../../../utils/transient-page-state");
+} = require("../utils/transient-page-state");
 
 const ROOT_FOLDER_SENTINEL = '__ROOT__';
 const DEFAULT_SORT_ORDER = 2147483647;
@@ -24,6 +24,7 @@ const ALBUM_FOLDER_SORT_READONLY_HINT = "当前后端暂不支持 album_folders.
 const ALBUM_PHOTO_STORY_SORT_MIGRATION_HINT = "数据库缺少 story_text / is_highlight / sort_order 字段，请先执行 SQL 迁移：photo/sql/migrations/06_album_photo_story_sort.sql";
 const ALBUM_PHOTO_SHOT_DATE_MIGRATION_HINT = "数据库缺少 shot_date 字段，请先执行 SQL 迁移：photo/sql/migrations/07_album_photo_shot_date.sql";
 const ALBUM_PHOTO_SHOT_LOCATION_MIGRATION_HINT = "数据库缺少 shot_location 字段，请先执行 SQL 迁移：photo/sql/migrations/08_album_photo_shot_location.sql";
+const ALBUM_SHOT_METADATA_MIGRATION_HINT = "展示拍摄信息需要更新数据库和后端服务";
 
 function shouldInvalidatePublicGalleryCache(pageData) {
   if (!pageData || typeof pageData !== "object") return false;
@@ -707,6 +708,7 @@ Page({
     contentTopPx: 12,
     albumId: "",
     album: null,
+    savingShotMetadataVisibility: false,
     isSystemAlbum: false,
     authDenied: false,
     authErrorMessage: "",
@@ -1152,6 +1154,7 @@ Page({
         title: String(album.title || "").trim(),
         access_key: String(album.access_key || "").trim(),
         root_folder_name: String(album.root_folder_name || this.data.rootFolderName || "").trim(),
+        show_shot_metadata: album.show_shot_metadata === true,
       } : null,
       isSystemAlbum: Boolean(this.data.isSystemAlbum),
       rootFolderName: String(this.data.rootFolderName || "").trim(),
@@ -1199,13 +1202,17 @@ Page({
 
     try {
       // 加载相册信息
-      const albumResult = await dbQuery({
+      const albumQuery = {
         table: "albums",
         action: "select",
         columns: "id,title,access_key,root_folder_name",
         filters: [{ column: "id", operator: "eq", value: this.data.albumId }],
         maybeSingle: true,
-      });
+      };
+      let albumResult = await dbQuery({ ...albumQuery, columns: `${albumQuery.columns},show_shot_metadata` });
+      if (isColumnUnavailableError(readRpcError(albumResult, ""), "show_shot_metadata", "albums")) {
+        albumResult = await dbQuery(albumQuery);
+      }
       if (!hasRpcError(albumResult)) {
         const albumPayload = readRpcData(albumResult, null);
         const albumFromChain = readValueFromPayloadChain(
@@ -1220,6 +1227,7 @@ Page({
           const normalizedAlbum = Object.assign({}, album, {
             title: isSystemAlbum ? "照片墙管理" : (String(album.title || "").trim() || "未命名空间"),
             access_key: isSystemAlbum ? "" : String(album.access_key || "").trim(),
+            show_shot_metadata: album.show_shot_metadata === true,
           });
           setCachedAlbumRootName(
             album.access_key,
@@ -3203,6 +3211,41 @@ Page({
     }
   },
 
+  async onToggleShotMetadataVisibility(e) {
+    const { album, isSystemAlbum, savingShotMetadataVisibility } = this.data;
+    if (!album?.id || isSystemAlbum || savingShotMetadataVisibility) return;
+    const checked = e.detail.value === true;
+    const previous = album.show_shot_metadata === true;
+    if (checked === previous) return;
+
+    this.setData({ "album.show_shot_metadata": checked, savingShotMetadataVisibility: true });
+    try {
+      const result = await dbQuery({
+        table: "albums",
+        action: "update",
+        values: { show_shot_metadata: checked },
+        filters: [{ column: "id", operator: "eq", value: album.id }],
+        columns: "id,show_shot_metadata",
+        selectAfterWrite: true,
+        maybeSingle: true,
+      });
+      if (hasRpcError(result) || !readRpcData(result, null)?.id) {
+        throw new Error(readRpcError(result, "保存展示设置失败"));
+      }
+      this.persistPageState();
+      this.showToastMessage(checked ? "已开启拍摄信息展示" : "已关闭拍摄信息展示", "success");
+    } catch (error) {
+      this.setData({ "album.show_shot_metadata": previous });
+      const message = readErrorMessage(error, "保存展示设置失败");
+      this.showToastMessage(
+        isColumnUnavailableError(message, "show_shot_metadata", "albums") ? ALBUM_SHOT_METADATA_MIGRATION_HINT : message,
+        "error"
+      );
+    } finally {
+      this.setData({ savingShotMetadataVisibility: false });
+    }
+  },
+
   onOpenShotDateModal(e) {
     if (this.data.actionLoading) return;
     const photoId =
@@ -3243,12 +3286,11 @@ Page({
   },
 
   onEditingShotLocationInput(e) {
-    this.setData({
-      editingShotLocationValue: normalizeShotLocation(e && e.detail ? e.detail.value : ""),
-    });
+    this.setData({ editingShotLocationValue: e.detail.value });
   },
 
   async onSaveShotDate() {
+    if (this.data.actionLoading) return;
     const photoId = String(this.data.editingShotDatePhotoId || "").trim();
     if (!photoId) {
       this.showToastMessage("目标照片不存在", "warning");
@@ -3278,7 +3320,7 @@ Page({
         columns: "id,shot_date,shot_location",
       });
 
-      if (hasRpcError(result) && isColumnMissingError(readRpcError(result, "保存失败"), "shot_location")) {
+      if (!shotLocation && hasRpcError(result) && isColumnMissingError(readRpcError(result, "保存失败"), "shot_location")) {
         usedShotLocationColumn = false;
         result = await dbQuery({
           table: "album_photos",
@@ -3294,7 +3336,7 @@ Page({
         });
       }
 
-      if (hasRpcError(result)) {
+      if (hasRpcError(result) || !readRpcData(result, null)?.id) {
         const message = readRpcError(result, "保存失败");
         if (isColumnMissingError(message, "shot_date")) {
           this.showToastMessage(ALBUM_PHOTO_SHOT_DATE_MIGRATION_HINT, "warning");
@@ -3327,7 +3369,7 @@ Page({
       if (shouldInvalidatePublicGalleryCache(this.data)) {
         markGalleryCacheDirty();
       }
-      this.showToastMessage("拍摄时间已更新", "success");
+      this.showToastMessage("拍摄信息已更新", "success");
     } catch (error) {
       console.error("保存拍摄日期失败:", error);
       this.showToastMessage(readErrorMessage(error, "保存失败"), "error");

@@ -55,16 +55,16 @@ const {
   deleteAdminBetaVersion,
   generateAdminBetaFeatureCode,
   clearAdminSessionCache,
-} = require("../../services/photo-admin-api");
+} = require("./services/photo-admin-api");
 const { logout, requestJson } = require("../../services/photo-api");
-const { clearStoredCookie } = require("../../utils/auth");
+const { clearStoredCookie, getStoredCookie } = require("../../utils/auth");
 const { normalizeChinaMobile, isValidChinaMobile } = require("../../utils/phone");
 const { resolvePublicUrl } = require("../../utils/storage-url");
 const {
   saveTransientPageState,
   loadTransientPageState,
   clearTransientPageState,
-} = require("../../utils/transient-page-state");
+} = require("./utils/transient-page-state");
 const { optimizeAlbumCoverPath } = require("./utils/album-cover");
 const runtimeConfig = require("../../config");
 
@@ -1851,21 +1851,20 @@ Page({
     const isForegroundReturn = appEnterSeq > Math.max(0, Number(this._lastSeenAppEnterSeq || 0));
     this._lastSeenAppEnterSeq = appEnterSeq;
     this.syncSectionMeta(this.data.activeSection);
-    if (!this.data.serviceMissing) {
-      if (this.consumeSuppressBootstrapOnShow()) {
-        return;
-      }
-      if (isForegroundReturn && this.shouldPreserveRuntimeStateOnForegroundReturn()) {
-        if (this._restoredGalleryUploadDraft) {
-          this._restoredGalleryUploadDraft = false;
-          this.showNotice("info", "摆姿数据已部分刷新，其余内容请稍后重试");
-        }
-        return;
-      }
-      this.bootstrap();
-    } else {
+    if (this.data.serviceMissing) {
       this.setData({ loading: false });
+      return;
     }
+    const cookie = getStoredCookie();
+    const returningFromNativePage = this.consumeSuppressBootstrapOnShow();
+    if (cookie && this._bootstrappedCookie === cookie && !this.data.authDenied) {
+      if (!returningFromNativePage && isForegroundReturn && this._restoredGalleryUploadDraft) {
+        this._restoredGalleryUploadDraft = false;
+        this.showNotice("info", "摆姿数据已部分刷新，其余内容请稍后重试");
+      }
+      return;
+    }
+    void this.bootstrap();
   },
 
   onHide() {
@@ -2210,15 +2209,6 @@ Page({
     this._suppressBootstrapReason = String(reason || "").trim();
   },
 
-  shouldPreserveRuntimeStateOnForegroundReturn() {
-    const files = Array.isArray(this.data.galleryUploadFiles) ? this.data.galleryUploadFiles : [];
-    const hasHydratedRuntimeState = !this.data.loading && !this.data.serviceMissing;
-    return Boolean(this.data.galleryUploadSubmitting)
-      || Boolean(this.data.galleryUploadModalOpen)
-      || files.length > 0
-      || hasHydratedRuntimeState;
-  },
-
   buildGalleryUploadDraftPayload() {
     const files = Array.isArray(this.data.galleryUploadFiles) ? this.data.galleryUploadFiles : [];
     return {
@@ -2300,6 +2290,10 @@ Page({
   },
 
   async bootstrap() {
+    if (this._bootstrapPending) return;
+    this._bootstrapPending = true;
+    this._bootstrappedCookie = "";
+    const cookie = getStoredCookie();
     this.setData({
       loading: true,
       authDenied: false,
@@ -2310,6 +2304,7 @@ Page({
 
     try {
       const user = await requireAdminSession();
+      if (cookie !== getStoredCookie()) return;
       const adminName = String(user.name || user.phone || user.email || "管理员");
       this.setData({ adminName });
 
@@ -2327,6 +2322,7 @@ Page({
         this.loadRecentBookings({ throwOnError: false }),
       ]);
       const failedBootstrapCount = bootstrapResults.filter((item) => item.status === "rejected").length;
+      if (cookie === getStoredCookie()) this._bootstrappedCookie = cookie;
       if (failedBootstrapCount > 0) {
         this.showNotice("error", `有 ${failedBootstrapCount} 个模块加载失败，可稍后下拉刷新重试`);
       }
@@ -2344,6 +2340,10 @@ Page({
       });
       this.showNotice("error", message);
     } finally {
+      this._bootstrapPending = false;
+      if (cookie !== getStoredCookie()) {
+        this.setData({ authDenied: true });
+      }
       this.setData({ loading: false });
       wx.stopPullDownRefresh();
     }

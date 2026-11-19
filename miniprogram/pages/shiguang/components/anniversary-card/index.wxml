@@ -1,20 +1,18 @@
-<view class="anniversary-card">
-  <view class="anniversary-header">
-    <text class="anniversary-label">{{slides[current].typeLabel || '纪念日'}}</text>
-  </view>
-  <swiper wx:if="{{slides.length}}" class="anniversary-swiper" current="{{current}}" autoplay="{{active && slides.length > 1}}" interval="{{5000}}" duration="{{400}}" circular="{{slides.length > 1}}" indicator-dots="{{slides.length > 1}}" indicator-color="#decbb0" indicator-active-color="#8d654a" bindchange="change">
+<view class="anniversary-card" role="button" aria-label="进入纪念日和倒数日管理" bindtap="manage" hover-class="anniversary-pressed">
+  <swiper wx:if="{{slides.length}}" class="anniversary-swiper" current="{{current}}" duration="{{400}}" circular="{{slides.length > 1}}" style="{{touchDisabled ? 'pointer-events: none;' : ''}}" bindchange="change">
     <swiper-item wx:for="{{slides}}" wx:key="id">
-      <view class="anniversary-slide">
-        <text class="anniversary-name">{{item.name}}</text>
-        <view class="anniversary-count"><text class="anniversary-caption">{{item.caption}}</text><text class="anniversary-number {{item.compact ? 'anniversary-number--compact' : ''}}">{{item.days}}</text><text class="anniversary-unit">天</text></view>
+      <view class="anniversary-slide" catchtap="manage">
+        <text class="anniversary-heading">{{item.name}} {{item.caption}}</text>
+        <text class="anniversary-number {{item.compact ? 'anniversary-number--compact' : item.days >= 10000 ? 'anniversary-number--medium' : item.days >= 1000 ? 'anniversary-number--wide' : ''}}">{{item.days}}</text>
+        <view class="anniversary-unit"><view class="anniversary-rule"></view><text>天</text><view class="anniversary-rule"></view></view>
         <text class="anniversary-date">{{item.date}}</text>
       </view>
     </swiper-item>
   </swiper>
-  <view wx:else class="anniversary-empty" role="button" aria-label="进入纪念日管理" bindtap="manage" hover-class="anniversary-pressed">
+  <view wx:else class="anniversary-empty">
     <image class="anniversary-empty__icon" src="/pages/shiguang/images/anniversary.svg" mode="aspectFit" />
   </view>
-  <view class="anniversary-entry" role="button" aria-label="进入纪念日和倒数日管理" bindtap="manage" hover-class="anniversary-pressed">
+  <view class="anniversary-entry">
     <text>点击进入</text><text class="anniversary-arrow">›</text>
   </view>
 </view>

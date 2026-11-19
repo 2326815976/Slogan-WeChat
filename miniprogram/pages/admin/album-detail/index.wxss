@@ -95,6 +95,20 @@ button::after {
   margin-bottom: 18rpx;
 }
 
+.album-shot-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-bottom: 18rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 200, 87, 0.17);
+  color: #5d4037;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
 .header-back-btn {
   width: 64rpx;
   height: 64rpx;

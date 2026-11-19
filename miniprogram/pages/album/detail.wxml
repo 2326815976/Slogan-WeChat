@@ -1,4 +1,13 @@
 <page-meta page-style="{{(switchingFolderLoading || pendingFolderPhotoIds.length > 0) ? 'overflow: hidden;' : ''}}" />
+<template name="albumShotMetadata">
+  <view class="album-shot-meta" wx:if="{{photo.shot_date || photo.shot_location}}">
+    <view class="album-shot-meta__location" wx:if="{{photo.shot_location}}">
+      <image class="album-shot-meta__icon" src="/images/icons/map-pin-yellow.svg" mode="aspectFit" />
+      <text class="album-shot-meta__text">{{photo.shot_location}}</text>
+    </view>
+    <text wx:if="{{photo.shot_date}}">{{photo.shot_date}}</text>
+  </view>
+</template>
 <view class="page">
   <secondary-page-shell
     shell-class="page"
@@ -187,6 +196,7 @@
                 <text>{{item.is_public ? '已定格' : '定格'}}</text>
               </button>
             </view>
+            <template wx:if="{{album.show_shot_metadata}}" is="albumShotMetadata" data="{{photo: item}}" />
           </view>
           <view class="photo-card photo-card--paging-skeleton" wx:for="{{pagingSkeletonLeftPhotos}}" wx:key="id">
             <view class="photo-img-wrap">
@@ -282,6 +292,7 @@
                 <text>{{item.is_public ? '已定格' : '定格'}}</text>
               </button>
             </view>
+            <template wx:if="{{album.show_shot_metadata}}" is="albumShotMetadata" data="{{photo: item}}" />
           </view>
           <view class="photo-card photo-card--paging-skeleton" wx:for="{{pagingSkeletonRightPhotos}}" wx:key="id">
             <view class="photo-img-wrap">

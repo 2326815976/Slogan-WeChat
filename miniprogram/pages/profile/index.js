@@ -5,6 +5,7 @@ const {
   extractSessionUser,
   loginWithMiniProgram,
 } = require("../../services/photo-api");
+const { reserveManualNavigation } = require("../../services/shiguang");
 const { clearStoredCookie } = require("../../utils/auth");
 const { getLegalDocuments, getLegalDocumentByKey } = require("../../utils/legal-docs");
 const {
@@ -874,7 +875,20 @@ Page({
   },
 
   goAdmin() {
-    wx.navigateTo({ url: "/pages/admin/index" });
+    if (!this.data.isAdmin || this._navigatingToAdmin) return;
+    const pages = getCurrentPages();
+    if (pages[pages.length - 1] !== this || !reserveManualNavigation()) return;
+
+    this._navigatingToAdmin = true;
+    wx.navigateTo({
+      url: "/pages/admin/index",
+      fail: () => {
+        wx.showToast({ title: "进入后台管理失败，请重试", icon: "none" });
+      },
+      complete: () => {
+        this._navigatingToAdmin = false;
+      },
+    });
   },
 
   onProfileMenuTap(e) {

@@ -1,5 +1,6 @@
 const { requestJson, requestUpload } = require("../utils/cloudrun");
 const { getStoredCookie, subscribeStoredCookieClear } = require("../utils/auth");
+const { downloadPrivateMedia, isPrivatePath, mapPrivateMedia } = require("../utils/shiguang-media");
 
 const SESSION_CACHE_TTL_MS = 45 * 1000;
 const TRANSIENT_DB_RETRY_TIMES = 2;
@@ -285,7 +286,9 @@ async function dbQuery(payload) {
 
 async function dbRpc(functionName, args, options) {
   const opts = options && typeof options === "object" ? options : {};
-  return requestDbEndpoint(
+  const isAlbumRead = functionName === "get_album_content" || functionName === "get_album_photo_page";
+  const cookie = isAlbumRead ? getStoredCookie() : "";
+  const result = await requestDbEndpoint(
     "/api/db/rpc",
     () => ({
       method: "POST",
@@ -299,6 +302,21 @@ async function dbRpc(functionName, args, options) {
       disableBackendRecovery: Boolean(opts.disableBackendRecovery),
     }
   );
+  const payload = isAlbumRead ? result?.data : null;
+  if (!payload) return result;
+  if (payload.album?.is_private_space) {
+    const cover = payload.album.cover_url;
+    payload.album.cover_url = isPrivatePath(cover) ? await downloadPrivateMedia(cover, cookie).catch(() => "") : "";
+  }
+  if (!opts.keepPrivatePaths && Array.isArray(payload.photos) && payload.photos.some(photo => isPrivatePath(photo.thumbnail_url))) {
+    payload.photos = await mapPrivateMedia(payload.photos, async photo => {
+      if (!isPrivatePath(photo.thumbnail_url)) return photo;
+      const local = await downloadPrivateMedia(photo.thumbnail_url, cookie).catch(() => "");
+      return { ...photo, url: local, thumbnail_url: local, preview_url: local, original_url: local, private_original_path: photo.original_url };
+    });
+  }
+  if (getStoredCookie() !== cookie) return { data: null, error: { message: "登录状态已变化，请重新打开相册" } };
+  return result;
 }
 
 function clearSessionCache() {

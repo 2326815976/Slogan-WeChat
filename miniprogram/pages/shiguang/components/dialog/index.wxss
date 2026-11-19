@@ -1,0 +1,58 @@
+.dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: max(24rpx, env(safe-area-inset-top)) 24rpx max(24rpx, env(safe-area-inset-bottom));
+}
+.dialog__backdrop { position: absolute; inset: 0; background: rgba(45, 32, 24, 0.52); }
+.dialog__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 660rpx;
+  max-height: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 2rpx solid #ead6b8;
+  border-radius: 36rpx;
+  background: #fffaf0;
+  color: #5d4037;
+  font-family: var(--font-default);
+  box-shadow: 0 20rpx 56rpx rgba(48, 32, 22, 0.24);
+}
+.dialog__header {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 26rpx 28rpx 20rpx;
+  border-bottom: 1rpx solid #eddfca;
+  background: linear-gradient(115deg, #fff0d6, #fff8ea 75%);
+}
+.dialog__heading { flex: 1; min-width: 0; }
+.dialog__title { display: block; font-size: 34rpx; font-weight: 700; line-height: 1.3; }
+.dialog__subtitle { display: block; margin-top: 6rpx; color: #85634f; font-size: 24rpx; line-height: 1.5; }
+.dialog__close {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #fffaf1;
+  color: #79533d;
+  font-family: Arial, sans-serif;
+  font-size: 42rpx;
+  line-height: 1;
+}
+.dialog__close--pressed { background: #f7e6cb; }
+.dialog__body { flex: 0 1 auto; min-height: 0; min-width: 0; overflow: hidden auto; overscroll-behavior: contain; padding: 24rpx 28rpx 28rpx; }

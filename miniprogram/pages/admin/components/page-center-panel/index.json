@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "admin-access-denied": "/pages/admin/components/access-denied/index"
+  }
+}

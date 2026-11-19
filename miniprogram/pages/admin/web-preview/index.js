@@ -1,4 +1,4 @@
-const { requireAdminSession } = require("../../../services/photo-admin-api");
+const { requireAdminSession } = require("../services/photo-admin-api");
 
 function decodeOptionText(value) {
   const raw = String(value || "").trim();

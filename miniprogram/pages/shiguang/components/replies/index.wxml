@@ -1,1 +1,22 @@
-<view class="sg-divider"><view wx:for="{{items}}" wx:key="id" class="sg-divider"><view class="sg-text">{{item.content}}</view><view class="sg-muted">{{item.author}} · {{item.time}}</view><view wx:if="{{item.createdBy === userId}}" class="sg-row"><text class="sg-link" data-id="{{item.id}}" bindtap="edit">编辑回复</text><text class="sg-link sg-danger" data-id="{{item.id}}" bindtap="remove">删除</text></view></view><text wx:if="{{hasMore}}" class="sg-link" bindtap="more">更多回复</text><textarea class="sg-input sg-area" placeholder="写一句回应" maxlength="2000" value="{{content}}" bindinput="input"/><view wx:if="{{error}}" class="sg-error">{{error}}</view><view class="sg-row"><button class="sg-button" disabled="{{busy}}" bindtap="save">{{editing ? '保存回复' : '回复'}}</button><text wx:if="{{editing}}" class="sg-link" bindtap="cancel">取消</text></view></view>
+<space-dialog title="絮语回复" busy="{{busy}}" bind:close="close">
+  <view class="sg-stack">
+    <view wx:if="{{error}}" class="sg-error">{{error}}</view>
+    <view wx:if="{{loaded && !items.length && !formOpen}}" class="sg-muted">还没有回复，写一句回应吧。</view>
+    <view wx:for="{{items}}" wx:key="id" class="reply-card">
+      <view class="sg-muted">{{item.author}} · {{item.time}}</view>
+      <view class="sg-text">{{item.content}}</view>
+      <view wx:if="{{item.createdBy === userId}}" class="sg-row">
+        <text class="sg-link" data-id="{{item.id}}" bindtap="edit">编辑</text><text class="sg-link sg-danger" data-id="{{item.id}}" bindtap="remove">删除</text>
+      </view>
+    </view>
+    <button wx:if="{{hasMore}}" class="sg-action" disabled="{{busy}}" bindtap="more">更多回复</button>
+    <button wx:if="{{!formOpen}}" class="sg-action sg-action--primary" disabled="{{busy}}" bindtap="start">写回复</button>
+    <block wx:else>
+      <label class="sg-field"><text class="sg-label">{{editing ? '编辑回复' : '写回复'}}</text><textarea class="sg-input sg-area" placeholder="写一句回应" maxlength="2000" value="{{content}}" disabled="{{busy}}" bindinput="input"/></label>
+      <view class="sg-actions">
+        <button class="sg-action" disabled="{{busy}}" bindtap="cancel">取消</button>
+        <button class="sg-action sg-action--primary" disabled="{{busy || !content}}" bindtap="save">{{editing ? '保存回复' : '发送回复'}}</button>
+      </view>
+    </block>
+  </view>
+</space-dialog>

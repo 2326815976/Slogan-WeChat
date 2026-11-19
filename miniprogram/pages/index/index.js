@@ -313,12 +313,19 @@ Page({
     this.startHomePageIfNeeded();
   },
 
-  async onShow() {
+  onShow() {
     this._pageVisible = true;
+    this.setData({ entryChecking: true });
+    if (this._shiguangRouteReady) void this.showReadyHome();
+  },
+
+  onReady() {
+    if (this._pageVisible) void this.showReadyHome();
+  },
+
+  async showReadyHome() {
     // 默认首页跳转必须等待拾光成员检查，避免先显示照片墙再跳回拾光。
-    const entryPromise = enterPreferredSpace();
-    if (getApp().globalData.shiguangEntryChecking) this.setData({ entryChecking: true });
-    const enteredSpace = await entryPromise;
+    const enteredSpace = await enterPreferredSpace();
     if (enteredSpace || !this._pageVisible) return;
     this.setData({ entryChecking: false });
     const app = typeof getApp === "function" ? getApp() : null;

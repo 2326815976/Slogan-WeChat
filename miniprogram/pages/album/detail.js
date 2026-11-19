@@ -2,6 +2,7 @@
 const { resolvePublicUrl } = require("../../utils/storage-url");
 const { markGalleryCacheDirty } = require("../../utils/gallery-cache");
 const { getCachedAlbumRootName, setCachedAlbumRootName } = require("../../utils/album-root-name-cache");
+const { downloadPrivateMedia, isPrivatePath } = require("../../utils/shiguang-media");
 const { getSessionId } = require("../../utils/session");
 const { getManagedPageAccess, normalizeRuntimeConfig } = require("../../utils/runtime-config");
 const { guardMiniProgramPageAccess } = require("../../utils/page-access");
@@ -2171,6 +2172,7 @@ Page({
       }
 
       const album = payload.album;
+      if (album?.is_private_space && wx.hideShareMenu) wx.hideShareMenu();
       const normalizedAlbum = Object.assign({}, album || {}, {
         cover_url: normalizeMaybeUrl(album && album.cover_url),
         donation_qr_code_url: normalizeMaybeUrl(album && album.donation_qr_code_url),
@@ -2186,7 +2188,7 @@ Page({
         readRootFolderNameFromPayload(payload) ||
         readRootFolderNameFromPayload(rawPayload) ||
         fallbackRootFolderName;
-      if (rootFolderName) {
+      if (rootFolderName && !album?.is_private_space) {
         setCachedAlbumRootName(this.data.key, rootFolderName);
       }
       const folders = [{ id: ROOT_FOLDER_ID, name: rootFolderName }].concat(
@@ -3006,6 +3008,7 @@ Page({
     if (!target) {
       throw new Error("缺少图片地址");
     }
+    if (isPrivatePath(target)) return downloadPrivateMedia(target);
 
     try {
       const info = await wx.getImageInfo({ src: target });
@@ -3194,7 +3197,7 @@ Page({
         message: total > 1 ? `正在保存第 ${index + 1} / ${total} 张...` : "正在保存照片...",
       });
 
-      const url = photo.original_url_resolved;
+      const url = photo.private_original_path || photo.original_url_resolved;
       if (!url) {
         fail += 1;
       } else {
@@ -3396,11 +3399,16 @@ Page({
       return;
     }
 
+    let currentUrl = currentRow.fullscreen_url_resolved;
+    if (currentRow.private_original_path) {
+      try { currentUrl = await downloadPrivateMedia(currentRow.private_original_path); }
+      catch { this.showToast("该照片原图暂不可用", "error", 2200); return; }
+    }
     void this.incrementPhotoViewCount(id);
     this.markTransientForegroundReturn();
     wx.previewImage({
-      current: currentRow.fullscreen_url_resolved,
-      urls: previewableRows.map((item) => item.fullscreen_url_resolved),
+      current: currentUrl,
+      urls: previewableRows.map((item, index) => index === currentIndex ? currentUrl : item.fullscreen_url_resolved),
     });
   },
 
@@ -3511,7 +3519,7 @@ Page({
   },
 
   onShareAppMessage() {
-    const key = String(this.data.key || "").trim();
+    const key = this.data.album?.is_private_space ? "" : String(this.data.key || "").trim();
     const path = key
       ? `/pages/album/detail?key=${encodeURIComponent(key)}`
       : "/pages/album/index";
@@ -3523,7 +3531,7 @@ Page({
   },
 
   onShareTimeline() {
-    const key = String(this.data.key || "").trim();
+    const key = this.data.album?.is_private_space ? "" : String(this.data.key || "").trim();
     return {
       title: SHARE_TITLE,
       query: key ? `key=${encodeURIComponent(key)}` : "",

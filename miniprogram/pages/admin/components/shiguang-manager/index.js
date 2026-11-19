@@ -31,7 +31,7 @@ Component({
         // 兼容尚未更新的列表接口，已软删除空间不再展示或请求封面。
         const items = result.items.filter(s => !s.deletedAt);
         const links = await sg.mediaLinks(items.map(s => s.cover));
-        this.setData({ items: items.map(s => ({ ...s, coverUrl: links[s.cover] || s.cover })), page, hasMore: result.hasMore });
+        this.setData({ items: items.map(space => ({ ...space, coverUrl: sg.mediaDisplayUrl(space.cover, links) })), page, hasMore: result.hasMore });
       } catch (e) { this.setData({ error: e.message }); }
       finally { this.setData({ loading: false }); }
     },
@@ -141,9 +141,9 @@ Component({
       const m = s.members.find(m => m.userId === e.currentTarget.dataset.user);
       this.setData({ member: { ...m, space: s.id, avatarUrl: '' }, error: '' });
       try {
-        const links = await sg.mediaLinks([m.avatar]);
+        const links = await sg.mediaLinks([m.avatar], { avatarPreview: true });
         // 关闭或切换编辑对象后，不让异步头像结果重新打开弹窗。
-        if (this.data.member && this.data.member.userId === m.userId) this.setData({ 'member.avatarUrl': links[m.avatar] || m.avatar });
+        if (this.data.member && this.data.member.userId === m.userId) this.setData({ 'member.avatarUrl': sg.mediaDisplayUrl(m.avatar, links) });
       } catch (e) { this.setData({ error: e.message }); }
     },
     memberName(e) { this.setData({ 'member.name': e.detail.value }); },

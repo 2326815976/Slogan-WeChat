@@ -1,1 +1,36 @@
 @import './shared.wxss';
+
+.entries-content { padding-bottom: 16rpx; }
+.entries-toolbar { display: grid; gap: 12rpx; margin-bottom: 24rpx; }
+.entries-toolbar > button { min-height: 84rpx; font-size: 29rpx; }
+.entries-filters { display: flex; gap: 12rpx; }
+.entries-date-picker { flex: 1; min-width: 0; }
+.entries-date-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  gap: 12rpx;
+  min-height: 72rpx;
+  padding: 10rpx 20rpx;
+  border: 2rpx solid #e6d3b9;
+  border-radius: 20rpx;
+  background: #fffdf8;
+  color: #674a37;
+  font-size: 26rpx;
+}
+.entries-filter-arrow { flex: none; width: 22rpx; height: 22rpx; transform: rotate(90deg); }
+button.entries-clear { width: auto; flex: none; padding-inline: 16rpx; }
+.entries-empty { padding-block: 40rpx; }
+.entries-heading { display: flex; align-items: flex-start; gap: 12rpx; justify-content: space-between; }
+.entries-heading .sg-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.entries-heading .sg-chip { flex: none; }
+.entries-chip--fulfilled { color: #536449; background: #e8eedf; }
+.entries-anniversary { margin: 4rpx 0 16rpx; padding: 16rpx 20rpx; border-radius: 20rpx; background: #f9efdf; }
+.entries-count { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10rpx; color: #78573e; font-size: 25rpx; }
+.entries-count__number { color: #5d4037; font-family: Georgia, serif; font-weight: 700; font-size: 46rpx; }
+.entries-cover { display: block; margin: 12rpx 0; background: #f8f1e5; border-radius: 20rpx; }
+.entries-byline { margin-top: 12rpx; }
+.entries-actions { margin-top: 16rpx; padding-top: 16rpx; border-top: 2rpx dashed #ecdfcc; gap: 10rpx; }
+button.entries-action { width: auto; padding-inline: 18rpx; }
+button.entries-action--danger { color: #a64234; background: #fff4f0; border-color: #ecd4cc; }

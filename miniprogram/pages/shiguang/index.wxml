@@ -1,9 +1,9 @@
 <template name="space-content">
   <view class="space-content {{summary.publishState === 'beta' ? 'space-content--beta' : ''}}">
     <view wx:if="{{error}}" class="sg-error">{{error}}</view>
-    <block wx:if="{{summary}}">
+    <block wx:if="{{summary && !overviewLoading}}">
       <view class="space-members">
-        <view class="space-member {{index === 0 ? 'space-member--left' : ''}}" wx:for="{{summary.space.members}}" wx:key="userId">
+        <view class="space-member {{index === 0 ? 'space-member--left' : ''}} {{item.role === 'boy' ? 'space-member--boy' : 'space-member--girl'}}" wx:for="{{summary.space.members}}" wx:key="userId">
           <view class="space-member__portrait">
             <image wx:if="{{item.avatarUrl}}" class="space-member__avatar" src="{{item.avatarUrl}}" mode="aspectFill" />
             <view wx:else class="space-member__avatar space-member__avatar--empty"><image src="/images/icons/user-brown.svg" mode="aspectFit" /></view>
@@ -11,18 +11,26 @@
           </view>
           <view class="space-member__info">
             <text class="space-member__name">{{item.name}}</text>
-            <button class="space-mood {{index === 1 ? 'space-mood--blue' : ''}}" data-key="mood" bindtap="open" hover-class="space-pressed">{{item.todayMood}}</button>
+            <view wx:if="{{item.userId === summary.userId}}" class="space-mood" role="button" bindtap="openMood" hover-class="space-pressed">{{item.todayMood || '记录心情'}}</view>
+            <view wx:else class="space-mood">{{item.todayMood || '今日未记录'}}</view>
           </view>
         </view>
       </view>
       <view class="space-overview">
-        <view class="space-cover" data-key="album" bindtap="open" hover-class="space-pressed" role="button" aria-label="进入空间：{{summary.album.title || '空间相册'}}">
+        <view class="space-cover {{albumPhotos.length ? 'space-cover--photo' : ''}}" data-key="album" bindtap="open" hover-class="space-pressed" role="button" aria-label="进入空间：{{summary.album.title || '空间相册'}}">
           <view class="space-cover__body">
             <view class="space-cover__heading"><text class="space-cover__title">{{summary.album.title || '空间相册'}}</text></view>
             <view class="space-cover__visual">
-              <image wx:if="{{summary.album.coverUrl}}" class="space-cover__image" src="{{summary.album.coverUrl}}" mode="aspectFill" />
+              <swiper wx:if="{{albumPhotos.length}}" class="space-cover__swiper" current="{{albumPhotoIndex}}" duration="{{400}}" circular="{{albumPhotos.length > 1}}" style="{{albumTouchBlocked ? 'pointer-events: none;' : ''}}" data-carousel="album" bindchange="changeOverviewSlide">
+                <swiper-item wx:for="{{albumPhotos}}" wx:key="id">
+                  <view class="space-cover__slide" data-key="album" catchtap="open">
+                    <image wx:if="{{index === albumPhotoIndex || index === albumNextIndex || index === albumPreviousIndex}}" class="space-cover__image" src="{{item.url}}" mode="aspectFill" data-id="{{item.id}}" data-url="{{item.url}}" bindload="onAlbumPhotoLoad" binderror="onAlbumPhotoError" />
+                  </view>
+                </swiper-item>
+              </swiper>
               <view wx:else class="space-cover__empty">
                 <image src="./images/album.svg" class="space-cover__placeholder" mode="aspectFit" />
+                <text wx:if="{{albumPreviewError}}" class="space-cover__note">照片暂时无法加载</text>
               </view>
             </view>
             <view class="space-cover__caption">
@@ -30,7 +38,7 @@
             </view>
           </view>
         </view>
-        <anniversary-card entries="{{summary.anniversaries}}" today="{{summary.today}}" data-key="anniversary" bind:manage="open" />
+        <anniversary-card slides="{{anniversarySlides}}" current="{{anniversaryIndex}}" touch-disabled="{{albumTouchBlocked}}" data-key="anniversary" bind:slidechange="changeOverviewSlide" bind:manage="open" />
       </view>
       <view wx:if="{{summary.space.letter}}" class="space-letter {{letterOpen ? 'space-letter--open' : ''}}">
         <button class="space-letter__heading" bindtap="toggleLetter" hover-class="space-pressed" aria-label="{{letterOpen ? '收起写给我们的信' : '打开写给我们的信'}}">
@@ -51,15 +59,35 @@
     <view wx:elif="{{!error}}" class="admin-loading-card admin-loading-card--page motion-fade-up motion-delay-2">
       <view class="admin-loading-card__orb"><view class="admin-loading-card__spinner"></view></view>
       <text class="admin-loading-card__title">拾光中......</text>
-      <text class="admin-loading-card__desc">正在加载页面</text>
+      <text class="admin-loading-card__desc">{{summary ? '正在加载相册首张照片' : '正在加载页面'}}</text>
     </view>
   </view>
 </template>
 <view class="sg-page">
   <block wx:if="{{summary.publishState !== 'beta'}}">
-    <primary-page-shell title="{{summary.space.name || '拾光空间'}}" subtitle="把日子，慢慢写成我们的故事" />
-    <scroll-view class="sg-scroll" scroll-y show-scrollbar="{{false}}"><template is="space-content" data="{{summary,error,letterOpen,modules}}" /></scroll-view>
+    <primary-page-shell title="{{summary.space.name || '拾光空间'}}" subtitle="💕 记录我们的专属时光 💕" />
+    <scroll-view class="sg-scroll" scroll-y="{{!moodOpen}}" show-scrollbar="{{false}}"><template is="space-content" data="{{summary,error,overviewLoading,letterOpen,modules,albumPhotos,albumPhotoIndex,albumNextIndex,albumPreviousIndex,albumTouchBlocked,anniversarySlides,anniversaryIndex,albumPreviewError}}" /></scroll-view>
     <app-bottom-nav currentPath="pages/shiguang/index" />
   </block>
-  <secondary-page-shell wx:else title="{{summary.space.name}}" fallbackRoute="/pages/profile/beta/index"><template is="space-content" data="{{summary,error,letterOpen,modules}}" /></secondary-page-shell>
+  <secondary-page-shell wx:else title="{{summary.space.name}}" scroll-y="{{!moodOpen}}" fallbackRoute="/pages/profile/beta/index"><template is="space-content" data="{{summary,error,overviewLoading,letterOpen,modules,albumPhotos,albumPhotoIndex,albumNextIndex,albumPreviousIndex,albumTouchBlocked,anniversarySlides,anniversaryIndex,albumPreviewError}}" /></secondary-page-shell>
+  <space-dialog wx:if="{{moodOpen}}" title="今天的心情" subtitle="点一下就记录，今天还可以更改。" busy="{{moodSaving}}" bind:close="closeMood">
+    <view class="sg-stack">
+      <view class="sg-actions sg-actions--three mood-options">
+        <button wx:for="{{quickMoods}}" wx:key="name" class="sg-action {{moodCurrent === item.name ? 'sg-action--selected' : ''}}" data-mood="{{item.name}}" disabled="{{moodSaving}}" bindtap="pickMood">
+          <text class="mood-option__icon">{{item.icon}}</text><text>{{item.name}}</text>
+        </button>
+      </view>
+      <view wx:if="{{moodSaving}}" class="sg-muted">正在保存…</view>
+      <view wx:if="{{moodError}}" class="sg-error">{{moodError}}</view>
+      <view class="sg-actions">
+        <button class="sg-action {{moodExpanded ? 'sg-action--selected' : ''}}" disabled="{{moodSaving}}" bindtap="toggleMoodDetails">{{moodExpanded ? '收起自定义' : '展开自定义'}}</button>
+        <button class="sg-action" disabled="{{moodSaving}}" bindtap="openMoodHistory" aria-label="更多心情记录">更多</button>
+      </view>
+      <form wx:if="{{moodExpanded}}" class="sg-stack mood-details" bindsubmit="submitMood">
+        <label class="sg-field"><text class="sg-label">心情名称</text><input class="sg-input" value="{{moodName}}" placeholder="今天感觉怎么样？" bindinput="editMoodName" maxlength="30" disabled="{{moodSaving}}" /></label>
+        <label class="sg-field"><text class="sg-label">描述（选填）</text><textarea class="sg-input sg-area" value="{{moodDescription}}" placeholder="写下一点今天的感受" bindinput="editMoodDescription" maxlength="1000" disabled="{{moodSaving}}" /></label>
+        <button class="sg-action sg-action--primary" form-type="submit" loading="{{moodSaving}}" disabled="{{moodSaving}}">保存心情</button>
+      </form>
+    </view>
+  </space-dialog>
 </view>

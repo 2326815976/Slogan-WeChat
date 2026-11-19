@@ -29,6 +29,11 @@
         </view>
       </view>
 
+      <view wx:if="{{!isSystemAlbum && album.id && !isSelectionMode}}" class="album-shot-setting">
+        <text>展示拍摄时间和地点</text>
+        <switch checked="{{album.show_shot_metadata}}" color="#FFC857" disabled="{{savingShotMetadataVisibility}}" bindchange="onToggleShotMetadataVisibility" />
+      </view>
+
       <view wx:if="{{!isSelectionMode}}" class="toolbar-actions toolbar-actions--normal">
         <button class="toolbar-btn toolbar-btn--soft" bindtap="onShowNewFolderModal">
           <image class="toolbar-btn__icon" src="/images/icons/plus-brown.svg" mode="aspectFit" />
@@ -163,7 +168,7 @@
             <view class="photo-card__action photo-card__action--story" catchtap="onOpenStoryModal" data-photo-id="{{item.id}}">
               <text class="photo-card__story-icon">✨</text>
             </view>
-            <view class="photo-card__action photo-card__action--date" catchtap="onOpenShotDateModal" data-photo-id="{{item.id}}">
+            <view class="photo-card__action photo-card__action--date" aria-label="修改拍摄信息" catchtap="onOpenShotDateModal" data-photo-id="{{item.id}}">
               <text class="photo-card__date-icon">📅</text>
             </view>
             <view class="photo-card__action photo-card__action--move" catchtap="onMovePhoto" data-photo-id="{{item.id}}">
@@ -441,7 +446,7 @@
   <view wx:if="{{showShotDateModal}}" class="modal-mask" bindtap="onCloseShotDateModal">
     <view class="modal-container" catchtap="onStopPropagation">
       <view class="modal-header">
-        <text class="modal-title">修改拍摄时间</text>
+        <text class="modal-title">修改拍摄信息</text>
       </view>
       <view class="modal-body">
         <view class="booking-modal__field">
@@ -449,6 +454,10 @@
           <picker mode="date" value="{{editingShotDateValue}}" bindchange="onEditingShotDateChange">
             <view class="shot-date-picker">{{editingShotDateValue}}</view>
           </picker>
+        </view>
+        <view class="booking-modal__field">
+          <text class="booking-modal__label">拍摄地点</text>
+          <input class="shot-location-input" type="text" maxlength="255" placeholder="拍摄地点（可留空）" value="{{editingShotLocationValue}}" bindinput="onEditingShotLocationInput" />
         </view>
       </view>
       <view class="modal-footer">

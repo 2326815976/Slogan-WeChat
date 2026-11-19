@@ -318,11 +318,25 @@ if (typeof NativePage === "function") {
 
     const originalOnLoad = typeof pageDef.onLoad === "function" ? pageDef.onLoad : null;
     pageDef.onLoad = function patchedOnLoad(...args) {
+      this._shiguangRouteReady = false;
       ensureShareMenuEnabled();
       if (originalOnLoad) {
         return originalOnLoad.apply(this, args);
       }
       return undefined;
+    };
+
+    const originalOnReady = typeof pageDef.onReady === "function" ? pageDef.onReady : null;
+    pageDef.onReady = function patchedOnReady(...args) {
+      this._shiguangRouteReady = true;
+      const result = originalOnReady?.apply(this, args);
+      const resume = this._resumeShiguangEntry;
+      this._resumeShiguangEntry = null;
+      if (resume) {
+        const pages = getCurrentPages();
+        if (pages[pages.length - 1] === this) void resume();
+      }
+      return result;
     };
 
     if (typeof pageDef.onShareAppMessage !== "function") {
@@ -455,12 +469,12 @@ App({
     this.globalData.appEnterSeq = nextSeq;
     this.globalData.appEnteredAt = Date.now();
     // 每次打开或回到小程序都先解析拾光入口，不依赖底部组件挂载。
-    void enterPreferredSpace();
+    void enterPreferredSpace(this.globalData);
   },
 
   onHide() {
     this.globalData.shiguangEntrySuspended = true;
-    this._returnFromNativePage = isNativePageReturnExpected();
+    this._returnFromNativePage = isNativePageReturnExpected(this.globalData);
   },
 
   notifyBackendStatusChange() {

@@ -1,7 +1,7 @@
 <view class="tab-bar" wx:if="{{visible}}">
   <view class="tab-inner">
     <view
-      class="tab-item {{selectedPath === item.pagePath ? 'tab-item--selected' : ''}}"
+      class="tab-item"
       hover-class="tab-item--active"
       hover-stay-time="80"
       wx:for="{{list}}"
@@ -10,13 +10,11 @@
       catchtap="switchTab"
     >
       <view class="tab-glow" wx:if="{{selectedPath === item.pagePath}}"></view>
-      <view class="tab-icon-wrap {{selectedPath === item.pagePath ? 'tab-icon-wrap--active' : ''}}">
-        <image
-          class="tab-icon {{selectedPath === item.pagePath ? 'tab-icon--active' : ''}}"
-          src="{{selectedPath === item.pagePath ? item.selectedIconPath : item.iconPath}}"
-          mode="aspectFit"
-        />
-      </view>
+      <image
+        class="tab-icon {{selectedPath === item.pagePath ? 'tab-icon--active' : ''}}"
+        src="{{selectedPath === item.pagePath ? item.selectedIconPath : item.iconPath}}"
+        mode="aspectFit"
+      />
       <text class="tab-text {{selectedPath === item.pagePath ? 'tab-text--active' : ''}}">{{item.text}}</text>
     </view>
   </view>

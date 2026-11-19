@@ -2,7 +2,7 @@ const { dbQuery, requestUpload, requestJson } = require("../../../services/photo
 const { resolvePublicUrl } = require("../../../utils/storage-url");
 const { setCachedAlbumRootName } = require("../../../utils/album-root-name-cache");
 const { markGalleryCacheDirty } = require("../../../utils/gallery-cache");
-const { detectImageShotDate } = require("../../../utils/image-shot-date");
+const { detectImageShotDate } = require("../utils/image-shot-date");
 
 const ROOT_FOLDER_SENTINEL = '__ROOT__';
 const DEFAULT_SORT_ORDER = 2147483647;
