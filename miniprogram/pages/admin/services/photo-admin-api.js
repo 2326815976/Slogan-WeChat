@@ -2,6 +2,7 @@
 const { dbQuery, dbRpc, getSession, requestJson, requestUpload } = require("../../../services/photo-api");
 const { getStoredCookie, subscribeStoredCookieClear } = require("../../../utils/auth");
 const { hasAdminAccess } = require("../../../utils/admin-access");
+const { boundAlbumAccessKey } = require("../../../services/shiguang");
 
 const ADMIN_BOOKING_STATUS = new Set([
   "pending",
@@ -1815,9 +1816,16 @@ async function createAdminRelease(input) {
   }
 }
 
-async function listAdminAlbums(limit) {
-  await requireAdminSession();
-  const pageLimit = Math.max(1, Math.min(2000, Number(limit || 500)));
+async function readBoundAdminAlbum(cookie) {
+  const accessKey = await boundAlbumAccessKey();
+  if (cookie !== getStoredCookie()) return null;
+  const result = await dbRpc("get_album_content", { input_key: accessKey, include_photos: false });
+  const album = result && result.data && result.data.album;
+  if (!album || !album.id || !album.is_private_space || cookie !== getStoredCookie()) return null;
+  return normalizeAdminAlbumRecord({ ...album, access_key: accessKey });
+}
+
+async function readAdminAlbums(pageLimit) {
   let result = await dbQuery({
     table: "albums",
     action: "select",
@@ -1835,8 +1843,19 @@ async function listAdminAlbums(limit) {
     });
   }
   const dataRaw = assertDbSuccess(result, "获取相册列表失败");
-  const data = (Array.isArray(dataRaw) ? dataRaw : []).map((row) => normalizeAdminAlbumRecord(row));
-  return Array.isArray(data) ? data : [];
+  return (Array.isArray(dataRaw) ? dataRaw : []).map(normalizeAdminAlbumRecord);
+}
+
+async function listAdminAlbums(limit) {
+  await requireAdminSession();
+  const cookie = getStoredCookie();
+  const pageLimit = Math.max(1, Math.min(2000, Number(limit || 500)));
+  const [rows, boundAlbum] = await Promise.all([
+    readAdminAlbums(pageLimit),
+    readBoundAdminAlbum(cookie).catch(() => null),
+  ]);
+  if (!cookie || cookie !== getStoredCookie()) throw new Error("登录状态已变化，请重新打开页面");
+  return boundAlbum && !rows.some(row => row.id === boundAlbum.id) ? [boundAlbum, ...rows] : rows;
 }
 
 async function ensureUniqueAlbumAccessKey(accessKey, excludeAlbumId) {

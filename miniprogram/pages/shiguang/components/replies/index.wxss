@@ -1,4 +1,13 @@
 @import '../../shared.wxss';
 
-.reply-card { padding: 18rpx 20rpx; border: 1rpx solid #eddfca; border-radius: 20rpx; background: #fffdf8; }
-.reply-card .sg-text { margin: 6rpx 0 12rpx; }
+.reply-panel { gap: 14rpx; padding-bottom: 8rpx; }
+.reply-list { overflow: hidden; border: 2rpx solid #efe1dc; border-radius: 22rpx; background: #fffdfb; }
+.reply-item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8rpx; padding: 14rpx 18rpx; }
+.reply-item + .reply-item { border-top: 1rpx solid #efe1dc; }
+.reply-heading > .sg-list-meta { flex: 1 1 200rpx; min-width: 0; }
+.reply-author { color: #5d4037; font-weight: 700; }
+.reply-item .sg-text { margin: 0; font-size: 26rpx; line-height: 1.6; }
+.reply-composer { gap: 12rpx; padding: 16rpx; border: 2rpx solid #efe1dc; border-radius: 22rpx; background: #fffdfb; }
+.reply-composer .reply-input { min-height: 120rpx; height: 132rpx; }
+.reply-empty { display: flex; flex-direction: column; align-items: center; gap: 14rpx; padding: 18rpx 0; }
+button.sg-action.reply-more { align-self: center; }

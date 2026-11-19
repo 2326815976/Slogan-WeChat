@@ -12,7 +12,8 @@ function whisperPreview(entry, summary, empty) {
   const mediaKinds = Object.keys(references).filter(kind => references[kind]);
   const single = mediaKinds.length === 1 ? mediaKinds[0] : '';
   return {
-    text: content || title || '',
+    title: title || '',
+    text: content || '',
     mediaKinds,
     single,
     reference: single ? references[single] : '',
@@ -43,8 +44,8 @@ async function loadHomePreview(summary) {
     promiseEmpty: promises ? '还没有心约' : '暂时无法加载',
     promiseCount: pageCount(promises),
     whispers: {
-      latest: whisperPreview(whispers?.items[0], summary, whispers ? '还没有絮语' : '暂时无法加载'),
-      mine: whisperPreview(whispers?.items.find(entry => entry.createdBy === summary.userId), summary, whispers ? '近期没有我的絮语' : '暂时无法加载'),
+      latest: whisperPreview(whispers?.items[0], summary, whispers ? '暂无絮语' : '暂时无法加载'),
+      mine: whisperPreview(whispers?.items.find(entry => entry.createdBy === summary.userId), summary, whispers ? '暂无我的絮语' : '暂时无法加载'),
     },
     ticketCount: pageCount(tickets, tickets?.items.filter(ticket => ticket.holderId === summary.userId).length),
   };

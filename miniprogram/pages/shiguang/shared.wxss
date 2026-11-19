@@ -34,6 +34,42 @@ button.sg-action--selected { background: #ffedcd; border-color: #d8b37e; }
 button.sg-action[disabled] { opacity: 0.55; color: #674a37; }
 button.sg-action:active { opacity: 0.72; }
 
+.sg-list-stack { display: grid; gap: 16rpx; min-width: 0; }
+.sg-list-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14rpx;
+  min-width: 0;
+  padding: 24rpx;
+  border: 2rpx solid #eddbd6;
+  border-radius: 26rpx;
+  background: #fffdfb;
+}
+.sg-list-item > .sg-text { margin: 0; line-height: 1.65; }
+.sg-list-title { min-width: 0; color: #5d4037; font-size: 30rpx; font-weight: 700; line-height: 1.45; overflow-wrap: anywhere; }
+.sg-list-line, .sg-list-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8rpx 16rpx; }
+.sg-list-line > .sg-list-title { flex: 1 1 160rpx; }
+.sg-list-meta { color: #795f56; font-size: 23rpx; line-height: 1.5; overflow-wrap: anywhere; }
+.sg-list-footer > .sg-list-meta { flex: 1 1 220rpx; min-width: 0; }
+.sg-list-actions, .sg-list-media-actions { display: flex; flex-wrap: wrap; gap: 10rpx; max-width: 100%; }
+.sg-list-actions { justify-content: flex-end; margin-left: auto; }
+button.sg-action.sg-list-action {
+  width: auto;
+  min-height: 64rpx;
+  padding: 8rpx 18rpx;
+  border-color: #ebdbd6;
+  border-radius: 999rpx;
+  background: #fbf4ef;
+  font-size: 24rpx;
+  white-space: nowrap;
+}
+button.sg-action.sg-list-action--accent { border-color: #ecced5; background: #fcecf0; color: #85485a; }
+button.sg-action.sg-list-action--danger { border-color: #ecd4cc; background: #fff4f0; color: #a64234; }
+button.sg-action.sg-list-thumbnail { width: 88rpx; height: 64rpx; padding: 0; overflow: hidden; border-radius: 14rpx; }
+.sg-list-thumbnail image { display: block; width: 100%; height: 100%; }
+.sg-list-tag { flex: none; padding: 5rpx 16rpx; border-radius: 999rpx; background: #f8eee7; color: #795f56; font-size: 23rpx; line-height: 1.5; }
+.sg-list-tag--done { background: #e8eee0; color: #536449; }
+
 .sg-media-composer { display: flex; flex-direction: column; gap: 12rpx; min-width: 0; }
 .sg-media-label { color: #785b49; font-size: 24rpx; font-weight: 600; }
 button.sg-media-upload { justify-content: flex-start; gap: 16rpx; padding: 12rpx 20rpx; background: #fff1d9; }

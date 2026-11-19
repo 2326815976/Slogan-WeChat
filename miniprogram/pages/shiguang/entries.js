@@ -4,7 +4,7 @@ const entryPages = {
   anniversary: { title: '纪念日', actionLabel: '新增纪念日', emptyLabel: '还没有纪念日，记下第一个特别的日子吧。' },
   wish: { title: '许愿池', actionLabel: '写下愿望', emptyLabel: '暂无愿望' },
   promise: { title: '心约', actionLabel: '写下约定', emptyLabel: '还没有约定，写下一件想一起做的事吧。' },
-  whisper: { title: '絮语', actionLabel: '写一则絮语', emptyLabel: '还没有絮语，留下一句想对对方说的话吧。' },
+  whisper: { title: '絮语', actionLabel: '写絮语', emptyLabel: '暂无絮语' },
   mood: { title: '心情', actionLabel: '记录今日心情', emptyLabel: '还没有心情记录。' },
 };
 Page({

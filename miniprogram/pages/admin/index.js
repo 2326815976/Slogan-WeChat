@@ -4945,6 +4945,7 @@ Page({
           if (!id || id === "00000000-0000-0000-0000-000000000000") return null;
 
           const title = String((row && row.title) || "").trim() || "未命名空间";
+          const isPrivateSpace = Boolean(row.is_private_space);
           const accessKey = normalizeAlbumAccessKey(row && row.access_key);
           const coverUrl = String((row && row.cover_url) || "").trim();
           const donationQrUrl = String((row && row.donation_qr_code_url) || "").trim();
@@ -4969,6 +4970,7 @@ Page({
           return {
             id,
             title,
+            isPrivateSpace,
             access_key: accessKey,
             cover_url: coverUrl,
             coverResolved: resolvePublicUrl(coverUrl),
@@ -4981,8 +4983,8 @@ Page({
             welcome_letter_mode: welcomeLetterMode,
             welcome_letter_mode_label: getWelcomeLetterModeLabel(welcomeLetterMode),
             enable_freeze: enableFreeze,
-            accessLink: buildAlbumAccessLink(accessKey),
-            qrUrl: buildAlbumQrUrl(accessKey),
+            accessLink: isPrivateSpace ? "" : buildAlbumAccessLink(accessKey),
+            qrUrl: isPrivateSpace ? "" : buildAlbumQrUrl(accessKey),
             created_at: createdAt,
             createdAtText: formatDateTime(createdAt),
             createdDateText: formatDateOnly(createdAt),
@@ -5016,7 +5018,8 @@ Page({
   refreshAlbumModuleView() {
     const sourceRows = Array.isArray(this.data.albums) ? this.data.albums : [];
     const rows = sourceRows.filter(
-      (item) => matchAlbumFilter(item, this.data.albumFilter) && matchAlbumKeyword(item, this.data.albumKeyword)
+      (item) => !(this.data.albumSelectionMode && item.isPrivateSpace) &&
+        matchAlbumFilter(item, this.data.albumFilter) && matchAlbumKeyword(item, this.data.albumKeyword)
     );
     const validIds = rows.map((item) => String((item && item.id) || "")).filter(Boolean);
     const validSet = new Set(validIds);
@@ -9693,6 +9696,11 @@ Page({
         ? normalizeAlbumAccessKey(e.currentTarget.dataset.key)
         : "";
     if (!id || !key) return;
+
+    if (this.data.albumRows.some(item => item.id === id && item.isPrivateSpace)) {
+      wx.navigateTo({ url: `/pages/album/detail?key=${encodeURIComponent(key)}` });
+      return;
+    }
 
     // 跳转到专属空间管理详情页面
     wx.navigateTo({

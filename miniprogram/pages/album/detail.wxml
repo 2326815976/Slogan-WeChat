@@ -11,7 +11,7 @@
 <view class="page">
   <secondary-page-shell
     shell-class="page"
-    title="{{headerTitle}}"
+    title="{{loading && !album && !serviceMissing ? initialAlbumTitle : headerTitle}}"
     subtitle=""
     fallbackTab="pages/album/index"
     content-class="content"

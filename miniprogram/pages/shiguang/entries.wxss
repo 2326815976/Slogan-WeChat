@@ -22,53 +22,39 @@
 .entries-filter-arrow { flex: none; width: 22rpx; height: 22rpx; transform: rotate(90deg); }
 button.entries-clear { width: auto; flex: none; padding-inline: 16rpx; }
 .entries-empty { padding-block: 40rpx; }
-.entries-heading { display: flex; align-items: flex-start; gap: 12rpx; justify-content: space-between; }
-.entries-heading .sg-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.entries-content > .sg-list-stack { margin-bottom: 24rpx; }
 .entries-anniversary-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16rpx;
   margin-bottom: 24rpx;
 }
-.entries-anniversary-grid > .sg-card {
+.entries-anniversary-grid > .sg-list-item {
   display: flex;
   flex-direction: column;
-  margin-bottom: 0;
   padding: 20rpx;
-  border-radius: 26rpx;
 }
-.entries-anniversary { margin: 4rpx 0 12rpx; padding: 14rpx; border-radius: 18rpx; background: #f9efdf; }
-.entries-count, .entries-count__value { display: flex; align-items: baseline; gap: 6rpx; }
-.entries-count { flex-wrap: wrap; color: #78573e; font-size: 24rpx; }
-.entries-count__value { max-width: 100%; }
+.entries-anniversary { display: grid; gap: 6rpx; padding: 16rpx; border-radius: 18rpx; background: #fceef0; }
+.entries-count { display: grid; gap: 4rpx; color: #795f56; font-size: 23rpx; }
+.entries-count__value { display: flex; align-items: baseline; gap: 6rpx; max-width: 100%; }
 .entries-count__number {
   min-width: 0;
   overflow-wrap: anywhere;
   color: #5d4037;
   font: 700 42rpx/1.15 Georgia, serif;
 }
-.entries-cover { display: block; margin: 12rpx 0; background: #f8f1e5; border-radius: 20rpx; }
-.entries-byline { margin-top: 12rpx; }
-.entries-actions { margin-top: 16rpx; padding-top: 16rpx; border-top: 2rpx dashed #ecdfcc; }
-.entries-action-buttons { gap: 10rpx; }
-button.entries-action { width: auto; padding-inline: 18rpx; }
-button.entries-action--danger { color: #a64234; background: #fff4f0; border-color: #ecd4cc; }
-.entries-anniversary-grid .sg-muted { font-size: 22rpx; }
-.entries-anniversary-grid .entries-byline { margin-top: auto; }
-.entries-anniversary-grid .entries-actions { margin-top: 12rpx; padding-top: 12rpx; }
-.entries-anniversary-grid .entries-action-buttons { gap: 8rpx; }
-.entries-anniversary-grid button.entries-action { padding-inline: 12rpx; font-size: 24rpx; }
-.sg-card.entries-wish { display: flex; align-items: flex-start; gap: 12rpx; padding: 20rpx 22rpx; margin-bottom: 14rpx; border-radius: 24rpx; }
-.entries-wish-heading { flex: 1; align-self: center; align-items: center; min-width: 0; gap: 8rpx; }
-.entries-wish-main { flex: 1; min-width: 0; }
-.entries-wish .sg-title { margin: 0; font-size: 28rpx; line-height: 1.5; white-space: pre-wrap; }
-.entries-wish-byline { margin-top: 4rpx; font-size: 22rpx; text-align: right; }
+.entries-cover { display: block; background: #f8f1ed; border-radius: 18rpx; }
+.entries-anniversary-grid .sg-list-footer { margin-top: auto; }
+.entries-anniversary-grid button.sg-list-action { padding-inline: 14rpx; }
+.entries-wish { display: flex; align-items: center; flex-wrap: wrap; gap: 8rpx 12rpx; padding: 20rpx 22rpx; }
+.entries-wish-heading { display: flex; flex: 1 1 230rpx; align-items: center; min-width: 0; gap: 8rpx; }
+.entries-wish .sg-list-title { font-size: 28rpx; white-space: pre-wrap; }
+.entries-wish-side { display: grid; gap: 4rpx; max-width: 100%; margin-left: auto; text-align: right; }
 button.entries-wish-check { display: flex; flex: none; align-items: center; justify-content: center; width: 60rpx; height: 60rpx; margin: 0; padding: 0; border: 0; border-radius: 50%; background: transparent; }
 button.entries-wish-check::after { border: 0; }
 button.entries-wish-check[disabled] { background: transparent; opacity: .55; }
 .entries-wish-check__mark { display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 36rpx; height: 36rpx; border: 2rpx solid #b99a8a; border-radius: 50%; font-size: 24rpx; line-height: 1; }
 .entries-wish--fulfilled .entries-wish-check__mark { border-color: #e48ca0; background: #e48ca0; color: #fff; }
-.entries-wish--fulfilled .sg-title { color: #826a61; text-decoration: line-through; }
-.entries-wish .entries-actions { flex: none; max-width: 48%; margin-top: 0; padding-top: 0; border-top: 0; }
-.entries-wish .entries-action-buttons { justify-content: flex-end; flex-wrap: nowrap; }
-.entries-wish button.entries-action { min-width: 88rpx; min-height: 60rpx; padding: 8rpx 16rpx; border-radius: 999rpx; font-size: 23rpx; }
+.entries-wish--fulfilled .sg-list-title { color: #795f56; text-decoration: line-through; }
+.entries-whisper { gap: 10rpx; padding: 20rpx 22rpx; }
+.entries-whisper .sg-list-footer { padding-top: 4rpx; }

@@ -107,15 +107,15 @@
             </view>
           </view>
         </view>
-        <view class="space-module">
+        <view class="space-module space-module--whisper">
           <view class="space-module__header" data-key="whisper" bindtap="open" aria-role="button" aria-label="进入絮语">
-            <image class="space-module__icon" src="./images/whisper.svg" mode="aspectFit" />
+            <view class="space-module__icon-badge"><image class="space-module__icon" src="./images/whisper.svg" mode="aspectFit" /></view>
             <text class="space-module__label">絮语</text>
             <view class="space-module__tabs" aria-label="絮语筛选">
               <button class="space-module__tab {{whisperScope === 'latest' ? 'space-module__tab--active' : ''}}" catchtap="selectWhisperScope" data-scope="latest">最新</button>
               <button class="space-module__tab {{whisperScope === 'mine' ? 'space-module__tab--active' : ''}}" catchtap="selectWhisperScope" data-scope="mine">我的</button>
             </view>
-            <text class="space-module__enter">进入 ›</text>
+            <view class="space-entry-arrow" aria-hidden="true" />
           </view>
           <template is="whisper-preview" data="{{whisper: preview.whispers[whisperScope], whisperScope, whisperMediaState, homePreviewFailed}}" />
         </view>
@@ -160,15 +160,16 @@
   <text>{{kind === 'image' ? '图片' : kind === 'video' ? '视频' : playing ? '暂停' : '音频'}}</text>
 </template>
 <template name="whisper-preview">
-  <view wx:if="{{whisper.author}}" class="space-module__whisper">
-    <view class="space-module__whisper-copy" data-key="whisper" bindtap="open" aria-role="button">
-      <view wx:if="{{whisper.text}}" class="space-module__whisper-text">{{whisper.text}}</view>
+  <view wx:if="{{whisper.author}}" class="space-module__whisper" data-key="whisper" bindtap="open" hover-class="space-pressed" aria-role="button">
+    <view class="space-module__whisper-copy">
+      <view wx:if="{{whisper.title}}" class="space-module__whisper-title">{{whisper.title}}</view>
+      <view wx:if="{{whisper.text}}" class="space-module__whisper-text {{whisper.title ? 'space-module__whisper-text--excerpt' : ''}}">{{whisper.text}}</view>
       <view class="space-module__meta space-module__whisper-meta">
-        <text class="space-module__whisper-author">{{whisper.author}}</text><text>·</text><text>{{whisper.time}}</text>
+        <text class="space-module__whisper-author">{{whisper.author}}</text><text wx:if="{{whisper.time}}" class="space-module__whisper-time">· {{whisper.time}}</text>
       </view>
     </view>
     <view wx:if="{{whisper.mediaKinds.length}}" class="space-module__whisper-media">
-      <button wx:if="{{whisper.single}}" class="space-module__attachment space-module__attachment--{{whisper.single}}" bindtap="openWhisperAttachment"
+      <button wx:if="{{whisper.single}}" class="space-module__attachment space-module__attachment--{{whisper.single}}" catchtap="openWhisperAttachment"
         disabled="{{whisperMediaState === 'loading'}}" aria-label="{{whisper.single === 'image' ? '查看原图' : whisper.single === 'video' ? '播放视频' : whisperMediaState === 'playing' ? '暂停音频' : '播放音频'}}">
         <template is="whisper-attachment-icon" data="{{kind: whisper.single, playing: whisperMediaState === 'playing'}}" />
         <image wx:if="{{whisper.single === 'image' && whisper.imageUrl}}" class="space-module__attachment-image" src="{{whisper.imageUrl}}" mode="aspectFill" data-scope="{{whisperScope}}" data-url="{{whisper.imageUrl}}" binderror="onWhisperImageError" />

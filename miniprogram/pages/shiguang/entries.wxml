@@ -1,3 +1,12 @@
+<template name="entryActions">
+  <view wx:if="{{item.canManage || kind === 'whisper'}}" class="sg-list-actions">
+    <button wx:if="{{kind === 'whisper'}}" class="sg-action sg-list-action sg-list-action--accent" data-id="{{item.id}}" bindtap="replies">回复</button>
+    <block wx:if="{{item.canManage}}">
+      <button class="sg-action sg-list-action" disabled="{{kind === 'wish' && busy}}" data-id="{{item.id}}" bindtap="edit">编辑</button>
+      <button class="sg-action sg-list-action sg-list-action--danger" disabled="{{busy}}" data-id="{{item.id}}" bindtap="remove">删除</button>
+    </block>
+  </view>
+</template>
 <secondary-page-shell title="{{title}}" scroll-y="{{!formOpen && !replyId}}" fallbackRoute="/pages/shiguang/index">
   <view class="entries-content">
     <view wx:if="{{error}}" class="sg-error">{{error}}</view>
@@ -16,49 +25,61 @@
     <view wx:if="{{!items.length && !error && (loaded || loading)}}" class="sg-card entries-empty sg-center sg-muted">
       {{loading ? '正在加载记录…' : date ? '这一天没有心情记录。' : emptyLabel}}
     </view>
-    <view wx:if="{{items.length}}" class="{{kind === 'anniversary' ? 'entries-anniversary-grid' : ''}}">
-      <view wx:for="{{items}}" wx:key="id" class="sg-card {{kind === 'wish' ? 'entries-wish' : ''}}">
-        <view wx:if="{{kind === 'wish'}}" class="entries-heading entries-wish-heading {{item.payload.status === 'fulfilled' ? 'entries-wish--fulfilled' : ''}}">
-          <button class="entries-wish-check" disabled="{{busy || loading || !item.canManage}}" data-id="{{item.id}}" bindtap="toggleWish" aria-label="{{item.payload.status === 'fulfilled' ? '已实现，点击标记为未实现' : '未实现，点击标记为已实现'}}">
-            <text class="entries-wish-check__mark">{{item.payload.status === 'fulfilled' ? '✓' : ''}}</text>
-          </button>
-          <view class="entries-wish-main">
-            <view class="sg-title">{{item.payload.content}}</view>
+    <view wx:if="{{items.length}}" class="{{kind === 'anniversary' ? 'entries-anniversary-grid' : 'sg-list-stack'}}">
+      <block wx:for="{{items}}" wx:key="id">
+        <view wx:if="{{kind === 'wish'}}" class="sg-list-item entries-wish">
+          <view class="entries-wish-heading {{item.payload.status === 'fulfilled' ? 'entries-wish--fulfilled' : ''}}">
+            <button class="entries-wish-check" disabled="{{busy || loading || !item.canManage}}" data-id="{{item.id}}" bindtap="toggleWish" aria-label="{{item.payload.status === 'fulfilled' ? '已实现，点击标记为未实现' : '未实现，点击标记为已实现'}}">
+              <text class="entries-wish-check__mark">{{item.payload.status === 'fulfilled' ? '✓' : ''}}</text>
+            </button>
+            <view class="sg-list-title">{{item.payload.content}}</view>
+          </view>
+          <view class="entries-wish-side">
+            <template is="entryActions" data="{{item, kind, busy}}" />
+            <view class="sg-list-meta">{{item.author || '空间成员'}}<text wx:if="{{item.time}}"> · {{item.time}}</text></view>
           </view>
         </view>
-        <view wx:elif="{{kind !== 'whisper' || item.payload.title}}" class="entries-heading">
-          <view class="sg-title">{{item.payload.name || item.payload.title || item.payload.mood || '一条记录'}}</view>
+        <view wx:elif="{{kind === 'whisper'}}" class="sg-list-item entries-whisper">
+          <view wx:if="{{item.payload.title}}" class="sg-list-title">{{item.payload.title}}</view>
+          <view wx:if="{{item.payload.content}}" class="sg-text">{{item.payload.content}}</view>
+          <view wx:if="{{item.payload.image || item.payload.audio || item.payload.video}}" class="sg-list-media-actions">
+            <button wx:if="{{item.payload.image}}" class="sg-action sg-list-action {{item.imageUrl ? 'sg-list-thumbnail' : ''}}" data-field="image" data-reference="{{item.payload.image}}" bindtap="openAttachment" aria-label="查看原图">
+              <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill" lazy-load="{{true}}" />
+              <text wx:else>图片</text>
+            </button>
+            <button wx:if="{{item.payload.audio}}" class="sg-action sg-list-action" data-reference="{{item.payload.audio}}" bindtap="play">播放音频</button>
+            <button wx:if="{{item.payload.video}}" class="sg-action sg-list-action" data-field="video" data-reference="{{item.payload.video}}" bindtap="openAttachment">播放视频</button>
+          </view>
+          <view class="sg-list-footer">
+            <view class="sg-list-meta">{{item.author || '空间成员'}}<text wx:if="{{item.time}}"> · {{item.time}}</text></view>
+            <template is="entryActions" data="{{item, kind, busy}}" />
+          </view>
         </view>
-        <view wx:if="{{kind === 'anniversary'}}" class="entries-anniversary">
-          <view class="entries-count">
-            <text>{{item.payload.direction === 'down' ? (item.days < 0 ? '已过' : '距离约定') : (item.days < 0 ? '距离这一天' : '一起走过')}}</text>
-            <view class="entries-count__value">
-              <text class="entries-count__number">{{item.days < 0 ? -item.days : item.days}}</text>
-              <text>天</text>
+        <view wx:else class="sg-list-item">
+          <view class="sg-list-title">{{item.payload.name || item.payload.title || item.payload.mood || '一条记录'}}</view>
+          <view wx:if="{{kind === 'anniversary'}}" class="entries-anniversary">
+            <view class="entries-count">
+              <text>{{item.payload.direction === 'down' ? (item.days < 0 ? '已过' : '距离约定') : (item.days < 0 ? '距离这一天' : '一起走过')}}</text>
+              <view class="entries-count__value">
+                <text class="entries-count__number">{{item.days < 0 ? -item.days : item.days}}</text>
+                <text>天</text>
+              </view>
             </view>
+            <view class="sg-list-meta">{{item.payload.date}}</view>
           </view>
-          <view class="sg-muted">{{item.payload.date}} · {{item.payload.direction === 'down' ? '倒数日' : '纪念日'}}</view>
-        </view>
-        <view wx:if="{{item.moodDate}}" class="sg-muted">心情日期 {{item.moodDate}}</view>
-        <view wx:if="{{item.payload.location}}" class="sg-muted">{{item.payload.location}}</view>
-        <view wx:if="{{kind !== 'wish' && (item.payload.content || item.payload.description)}}" class="sg-text">{{item.payload.content || item.payload.description}}</view>
-        <image wx:if="{{item.imageUrl}}" class="sg-cover entries-cover" src="{{item.imageUrl}}" mode="aspectFit" lazy-load="{{true}}" data-field="image" data-reference="{{item.payload.image}}" bindtap="openAttachment" aria-label="查看原图" />
-        <view wx:if="{{item.payload.audio || item.payload.video}}" class="sg-actions">
-          <button wx:if="{{item.payload.audio}}" class="sg-action" data-reference="{{item.payload.audio}}" bindtap="play">播放音频</button>
-          <button wx:if="{{item.payload.video}}" class="sg-action" data-field="video" data-reference="{{item.payload.video}}" bindtap="openAttachment">播放视频</button>
-        </view>
-        <view wx:if="{{kind !== 'wish'}}" class="sg-muted entries-byline">{{item.author || '空间成员'}} · {{item.time}}</view>
-        <view wx:if="{{kind === 'wish' || item.canManage || kind === 'whisper'}}" class="entries-actions">
-          <view wx:if="{{item.canManage || kind === 'whisper'}}" class="entries-action-buttons sg-row">
-            <button wx:if="{{kind === 'whisper'}}" class="sg-action entries-action" data-id="{{item.id}}" bindtap="replies">查看与回复</button>
-            <block wx:if="{{item.canManage}}">
-              <button class="sg-action entries-action" disabled="{{kind === 'wish' && busy}}" data-id="{{item.id}}" bindtap="edit">编辑</button>
-              <button class="sg-action entries-action entries-action--danger" disabled="{{busy}}" data-id="{{item.id}}" bindtap="remove">删除</button>
-            </block>
+          <view wx:if="{{item.payload.location}}" class="sg-list-meta">{{item.payload.location}}</view>
+          <view wx:if="{{item.payload.content || item.payload.description}}" class="sg-text">{{item.payload.content || item.payload.description}}</view>
+          <image wx:if="{{item.imageUrl}}" class="sg-cover entries-cover" src="{{item.imageUrl}}" mode="aspectFit" lazy-load="{{true}}" data-field="image" data-reference="{{item.payload.image}}" bindtap="openAttachment" aria-label="查看原图" />
+          <view wx:if="{{item.payload.audio || item.payload.video}}" class="sg-list-media-actions">
+            <button wx:if="{{item.payload.audio}}" class="sg-action sg-list-action" data-reference="{{item.payload.audio}}" bindtap="play">播放音频</button>
+            <button wx:if="{{item.payload.video}}" class="sg-action sg-list-action" data-field="video" data-reference="{{item.payload.video}}" bindtap="openAttachment">播放视频</button>
           </view>
-          <view wx:if="{{kind === 'wish'}}" class="sg-muted entries-wish-byline">{{item.author || '空间成员'}}<text wx:if="{{item.time}}"> · {{item.time}}</text></view>
+          <view class="sg-list-footer">
+            <view class="sg-list-meta">{{item.author || '空间成员'}}<text wx:if="{{item.moodDate || item.time}}"> · {{item.moodDate || item.time}}</text></view>
+            <template is="entryActions" data="{{item, kind, busy}}" />
+          </view>
         </view>
-      </view>
+      </block>
     </view>
     <button wx:if="{{hasMore}}" class="sg-action" loading="{{loading}}" disabled="{{loading || (kind === 'wish' && busy)}}" bindtap="more">加载更多记录</button>
   </view>

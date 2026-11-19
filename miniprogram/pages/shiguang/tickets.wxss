@@ -6,28 +6,40 @@
   display: grid;
   flex: none;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6rpx;
   box-sizing: border-box;
   margin: 0 28rpx;
-  padding: 6rpx;
-  border: 2rpx solid #ecdfcc;
-  border-radius: 24rpx;
-  background: #faf1e1;
+  border-bottom: 2rpx solid #eddbd6;
 }
 button.ticket-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 76rpx;
+  min-height: 88rpx;
   margin: 0;
-  padding: 12rpx 4rpx;
-  border-radius: 18rpx;
+  padding: 16rpx 8rpx 20rpx;
   background: transparent;
-  color: #795c4a;
-  font-size: 26rpx;
+  color: #795f56;
+  font-size: 28rpx;
+  font-weight: 500;
   line-height: 1.4;
 }
 button.ticket-tab::after { border: 0; }
-button.ticket-tab--active { background: #ffeccb; color: #5d4037; font-weight: 700; box-shadow: inset 0 0 0 2rpx #eed0a5; }
+button.ticket-tab--active { color: #85485a; font-weight: 700; }
+button.ticket-tab--active::before {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 64rpx;
+  height: 6rpx;
+  border-radius: 999rpx;
+  background: #bd6179;
+  transform: translateX(-50%);
+  content: '';
+}
 button.ticket-tab[disabled] { opacity: 0.7; }
 .tickets-scroll { flex: 1; height: 0; min-height: 0; width: 100%; }
 .tickets-content, .tickets-loading { padding: 20rpx 28rpx calc(24rpx + env(safe-area-inset-bottom)); }
@@ -40,9 +52,12 @@ button.tickets-draw { max-width: 320rpx; margin: 20rpx auto 10rpx; }
 .ticket-section-heading .sg-title { margin: 0; overflow-wrap: anywhere; }
 button.ticket-section-button { width: auto; padding-inline: 20rpx; }
 .ticket-empty { margin-top: 16rpx; }
-.ticket-name { font-size: 30rpx; font-weight: 700; overflow-wrap: anywhere; min-width: 0; }
-.ticket-chip--used { color: #536449; background: #e8eedf; }
+.ticket-list { margin-top: 16rpx; }
+.ticket-row { display: flex; align-items: center; justify-content: space-between; padding: 12rpx 18rpx; }
+.ticket-row .sg-list-actions { flex: none; flex-wrap: nowrap; }
 .offering-image { display: block; width: 100%; height: 300rpx; margin: 12rpx 0; border-radius: 16rpx; background: #fff5d9; }
+.ticket-details > .sg-text, .ticket-details > .offering-image { margin: 0; }
+.ticket-details > .offering-image { background: #f8f1ed; }
 .offering-editor .offering-image { height: 210rpx; }
 .wheel-stage { position: relative; width: 420rpx; max-width: 100%; aspect-ratio: 1; margin: 30rpx auto 24rpx; }
 .wheel {

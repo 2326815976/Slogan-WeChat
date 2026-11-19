@@ -10,8 +10,9 @@ Page({
     sections: SECTIONS, section: 'wheel', loaded: false,
     summary: null, pool: [], canDraw: false, retryDraw: false, own: [], cards: [], tickets: [], grants: [],
     balance: 0, partnerBalance: 0, partnerName: '', angle: 0, gradient: '#FBEFCB', amount: '1',
-    form: '', formTitle: '', name: '', content: '', image: '', imageUrl: '', editing: null,
-    busy: false, message: '', error: '', ticketMore: false, grantMore: false,
+    form: '', formTitle: '', name: '', content: '', image: '', imageUrl: '', editing: null, detail: null,
+    busy: false, message: '', error: '', ticketMore: false,
+    grantHistoryOpen: false, grantLoading: false, grantError: '', grantMore: false,
   },
   onLoad(options) {
     this.requests = new Map();
@@ -35,7 +36,7 @@ Page({
       const own = item.providerId === summary.userId;
       const sentGift = item.source === 'gift' && own;
       const sourceLabel = item.source === 'draw'
-        ? `抽奖获得 · ${name(item.providerId)} 提供给 ${name(item.holderId)}`
+        ? '抽奖获得'
         : sentGift ? `已赠给 ${name(item.holderId)}` : `收到 ${name(item.providerId)} 的赠送`;
       return { ...item, imageUrl: links[item.image] || '', sentGift, sourceLabel,
         time: sg.time(item.obtainedAt), usedTime: sg.time(item.usedAt), canRedeem: own && item.status === 'unused' };
@@ -46,10 +47,9 @@ Page({
     this.loading = loading;
     const preserveHistory = (section, page) => background && this.data.section === section && page > 0;
     try {
-      const [summary, prizes, cards, tickets, grants] = await Promise.all([
+      const [summary, prizes, cards, tickets] = await Promise.all([
         sg.api(), sg.api('/prizes'), sg.api('/gift-cards'),
         preserveHistory('cards', this.ticketsPage) ? null : sg.api('/tickets?page=0'),
-        preserveHistory('wheel', this.grantsPage) ? null : sg.api('/grants?page=0'),
       ]);
       if (this.loading !== loading) return;
       const partner = summary.space.members.find(member => member.userId !== summary.userId);
@@ -59,8 +59,7 @@ Page({
       const pendingCards = cards.items.filter(item => item.providerId === summary.userId);
       const links = await sg.mediaLinks([...prizes.items, ...pendingCards, ...(tickets?.items || [])].map(item => item.image));
       if (this.loading !== loading) return;
-      const offering = item => ({ ...item, imageUrl: links[item.image] || '', time: sg.time(item.createdAt),
-        provider: this.memberName(summary, item.providerId), recipient: this.memberName(summary, item.drawerId || item.holderId),
+      const offering = item => ({ ...item, imageUrl: links[item.image] || '',
         own: item.providerId === summary.userId,
       });
       const prizeItems = prizes.items.map(offering);
@@ -74,11 +73,6 @@ Page({
         this.ticketsPage = 0;
         history.tickets = this.historyItems('tickets', tickets.items, summary, links);
         history.ticketMore = tickets.hasMore;
-      }
-      if (grants && !preserveHistory('wheel', this.grantsPage)) {
-        this.grantsPage = 0;
-        history.grants = this.historyItems('grants', grants.items, summary, links);
-        history.grantMore = grants.hasMore;
       }
       this.setData({ pool, own: prizeItems.filter(item => item.own), cards: pendingCards.map(offering), loaded: true,
         canDraw: pool.length > 0, gradient: pool.length ? `conic-gradient(${segments.join(',')})` : '#FBEFCB',
@@ -95,6 +89,36 @@ Page({
   openGrant() {
     if (!this.data.busy && this.data.summary) this.setData({ form: 'grant', formTitle: '赠送抽奖次数', amount: '1', error: '' });
   },
+  openGrantHistory() {
+    if (this.data.busy || !this.data.summary) return;
+    this.setData({ grantHistoryOpen: true });
+    return this.loadGrantHistory();
+  },
+  closeGrantHistory() { this.setData({ grantHistoryOpen: false }); },
+  moreGrants() { return this.loadGrantHistory(this.data.grants.length ? this.grantsPage + 1 : 0); },
+  async loadGrantHistory(page = 0) {
+    const { summary, grantLoading } = this.data;
+    if (!summary || grantLoading) return;
+    this.setData({ grantLoading: true, grantError: '', ...(page ? {} : { grants: [], grantMore: false }) });
+    try {
+      const result = await sg.api(`/grants?page=${page}`);
+      const items = this.historyItems('grants', result.items, summary, {});
+      this.grantsPage = page;
+      this.setData({ grants: page ? this.data.grants.concat(items) : items, grantMore: result.hasMore });
+    } catch (error) {
+      this.setData({ grantError: error.message || '加载失败，请重试' });
+      if ([401, 403].includes(error.statusCode)) sg.fail(this, error);
+    } finally { this.setData({ grantLoading: false }); }
+  },
+  openDetails(event) {
+    if (this.data.busy) return;
+    const { resource, id } = event.currentTarget.dataset;
+    const { cards, own, pool, tickets } = this.data;
+    const records = resource === 'tickets' ? tickets : resource === 'gift-cards' ? cards : [...own, ...pool];
+    const item = records.find(record => record.id === id);
+    if (item) this.setData({ detail: { resource, item }, error: '' });
+  },
+  closeDetails() { if (!this.data.busy) this.setData({ detail: null, error: '' }); },
   openForm(event) {
     if (this.data.busy) return;
     const { mode, id } = event.currentTarget.dataset;
@@ -102,7 +126,7 @@ Page({
     const record = id ? records.find(item => item.id === id && item.own) : null;
     if (id && !record) return;
     this.recordId = record ? record.id : sg.uuid();
-    this.setData({ form: mode, formTitle: `${record ? '编辑' : '新增'}${mode === 'gift-cards' ? '卡券' : '奖项'}`,
+    this.setData({ detail: null, form: mode, formTitle: `${record ? '编辑' : '新增'}${mode === 'gift-cards' ? '卡券' : '奖项'}`,
       editing: record, name: record?.name || '', content: record?.content || '', image: record?.image || '', imageUrl: record?.imageUrl || '', error: '',
     });
   },
@@ -146,7 +170,8 @@ Page({
       } else {
         this.setData({ message: operation === 'grant' ? '抽奖次数已送达' : operation === 'send-card' ? '心意已送达' : '已记录兑现时间' });
       }
-      if (operation === 'grant' || (operation === 'send-card' && this.data.editing?.id === data.cardId)) this.setData({ form: '', editing: null });
+      if (operation === 'grant') this.setData({ form: '', editing: null });
+      if (operation === 'send-card' || operation === 'redeem') this.setData({ detail: null });
       await Promise.all([this.load(), spin]);
     });
   },
@@ -157,8 +182,10 @@ Page({
     if (!this.data.busy && await sg.confirm('确认已经为对方兑现这张券？')) return this.action('redeem', { ticketId });
   },
   async sendCard(event) {
-    const card = this.data.cards.find(item => item.id === event.currentTarget.dataset.id && item.own);
-    if (card && !this.data.busy && await sg.confirm(`确认把「${card.name}」送给 ${card.recipient}？送出后不可编辑或删除。`)) {
+    const { detail, summary, busy } = this.data;
+    if (busy || detail?.resource !== 'gift-cards' || detail.item.id !== event.currentTarget.dataset.id || !detail.item.own) return;
+    const card = detail.item;
+    if (await sg.confirm(`确认把「${card.name}」送给 ${this.memberName(summary, card.holderId)}？送出后不可编辑或删除。`)) {
       return this.action('send-card', { cardId: card.id, version: card.version });
     }
   },
@@ -182,15 +209,14 @@ Page({
       await this.load();
     });
   },
-  async more(event) {
-    const resource = event.currentTarget.dataset.resource;
+  async moreTickets() {
     await this.mutate(async () => {
-      const page = this[`${resource}Page`] + 1;
-      const result = await sg.api(`/${resource}?page=${page}`);
-      const links = resource === 'tickets' ? await sg.mediaLinks(result.items.map(item => item.image)) : {};
-      const items = this.historyItems(resource, result.items, this.data.summary, links);
-      this[`${resource}Page`] = page;
-      this.setData({ [resource]: this.data[resource].concat(items), [resource === 'tickets' ? 'ticketMore' : 'grantMore']: result.hasMore });
+      const page = this.ticketsPage + 1;
+      const result = await sg.api(`/tickets?page=${page}`);
+      const links = await sg.mediaLinks(result.items.map(item => item.image));
+      const items = this.historyItems('tickets', result.items, this.data.summary, links);
+      this.ticketsPage = page;
+      this.setData({ tickets: this.data.tickets.concat(items), ticketMore: result.hasMore });
     });
   },
 });
