@@ -2,8 +2,7 @@ const sg = require('../../services/shiguang');
 const DRAW_KEY = JSON.stringify(['draw', {}]);
 const SECTIONS = [
   { id: 'wheel', label: '转盘抽奖' },
-  { id: 'gifts', label: '赠送卡券' },
-  { id: 'history', label: '奖券记录' },
+  { id: 'cards', label: '我的卡券' },
 ];
 
 Page({
@@ -14,7 +13,10 @@ Page({
     form: '', formTitle: '', name: '', content: '', image: '', imageUrl: '', editing: null,
     busy: false, message: '', error: '', ticketMore: false, grantMore: false,
   },
-  onLoad() { this.requests = new Map(); },
+  onLoad(options) {
+    this.requests = new Map();
+    if (['cards', 'gifts', 'history'].includes(options?.section)) this.setData({ section: 'cards' });
+  },
   onShow() {
     if (!this.data.busy) this.load();
     clearInterval(this.timer);
@@ -28,27 +30,34 @@ Page({
   },
   historyItems(resource, items, summary, links) {
     const name = id => this.memberName(summary, id);
-    return items.map(item => resource === 'tickets' ? {
-      ...item, imageUrl: links[item.image] || '', provider: name(item.providerId), holder: name(item.holderId),
-      time: sg.time(item.obtainedAt), usedTime: sg.time(item.usedAt), canRedeem: item.providerId === summary.userId && item.status === 'unused',
-    } : { ...item, giver: name(item.giverId), receiver: name(item.receiverId), time: sg.time(item.createdAt) });
+    if (resource === 'grants') return items.map(item => ({ ...item, giver: name(item.giverId), receiver: name(item.receiverId), time: sg.time(item.createdAt) }));
+    return items.map(item => {
+      const own = item.providerId === summary.userId;
+      const sentGift = item.source === 'gift' && own;
+      const sourceLabel = item.source === 'draw'
+        ? `抽奖获得 · ${name(item.providerId)} 提供给 ${name(item.holderId)}`
+        : sentGift ? `已赠给 ${name(item.holderId)}` : `收到 ${name(item.providerId)} 的赠送`;
+      return { ...item, imageUrl: links[item.image] || '', sentGift, sourceLabel,
+        time: sg.time(item.obtainedAt), usedTime: sg.time(item.usedAt), canRedeem: own && item.status === 'unused' };
+    });
   },
   async load({ background = false } = {}) {
     const loading = {};
     this.loading = loading;
-    const preserveHistory = page => background && this.data.section === 'history' && page > 0;
+    const preserveHistory = (section, page) => background && this.data.section === section && page > 0;
     try {
       const [summary, prizes, cards, tickets, grants] = await Promise.all([
         sg.api(), sg.api('/prizes'), sg.api('/gift-cards'),
-        preserveHistory(this.ticketsPage) ? null : sg.api('/tickets?page=0'),
-        preserveHistory(this.grantsPage) ? null : sg.api('/grants?page=0'),
+        preserveHistory('cards', this.ticketsPage) ? null : sg.api('/tickets?page=0'),
+        preserveHistory('wheel', this.grantsPage) ? null : sg.api('/grants?page=0'),
       ]);
       if (this.loading !== loading) return;
       const partner = summary.space.members.find(member => member.userId !== summary.userId);
       const balance = summary.balances[summary.userId] || 0;
       this.setData({ summary, balance, partnerName: partner.name, partnerBalance: summary.balances[partner.userId] || 0 });
 
-      const links = await sg.mediaLinks([...prizes.items, ...cards.items, ...(tickets?.items || [])].map(item => item.image));
+      const pendingCards = cards.items.filter(item => item.providerId === summary.userId);
+      const links = await sg.mediaLinks([...prizes.items, ...pendingCards, ...(tickets?.items || [])].map(item => item.image));
       if (this.loading !== loading) return;
       const offering = item => ({ ...item, imageUrl: links[item.image] || '', time: sg.time(item.createdAt),
         provider: this.memberName(summary, item.providerId), recipient: this.memberName(summary, item.drawerId || item.holderId),
@@ -61,17 +70,17 @@ Page({
       const colors = ['#FFE2AE', '#F6C6C6', '#DCE7D1', '#FBEFCB'];
       const segments = pool.map((item, index) => `${colors[index % 4]} ${index * 100 / pool.length}% ${(index + 1) * 100 / pool.length}%`);
       const history = {};
-      if (tickets && !preserveHistory(this.ticketsPage)) {
+      if (tickets && !preserveHistory('cards', this.ticketsPage)) {
         this.ticketsPage = 0;
         history.tickets = this.historyItems('tickets', tickets.items, summary, links);
         history.ticketMore = tickets.hasMore;
       }
-      if (grants && !preserveHistory(this.grantsPage)) {
+      if (grants && !preserveHistory('wheel', this.grantsPage)) {
         this.grantsPage = 0;
         history.grants = this.historyItems('grants', grants.items, summary, links);
         history.grantMore = grants.hasMore;
       }
-      this.setData({ pool, own: prizeItems.filter(item => item.own), cards: cards.items.map(offering), loaded: true,
+      this.setData({ pool, own: prizeItems.filter(item => item.own), cards: pendingCards.map(offering), loaded: true,
         canDraw: pool.length > 0, gradient: pool.length ? `conic-gradient(${segments.join(',')})` : '#FBEFCB',
         ...history,
       });
@@ -131,7 +140,7 @@ Page({
         const index = pool.findIndex(item => item.id === result.prizeId);
         this.setData({
           angle: index < 0 ? angle : Math.ceil(angle / 360) * 360 + 1800 - (index + .5) * 360 / pool.length,
-          message: `抽中了「${result.name}」，已经放入你的奖券。`,
+          message: `抽中了「${result.name}」，已放入「我的卡券」。`,
         });
         if (index >= 0) spin = new Promise(resolve => setTimeout(resolve, 2500));
       } else {
