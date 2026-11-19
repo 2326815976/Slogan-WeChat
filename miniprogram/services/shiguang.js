@@ -1,9 +1,9 @@
 const { requestJson, requestUpload } = require('../utils/cloudrun');
-const { dbRpc } = require('./photo-api');
 const config = require('../config');
 const { getStoredCookie, subscribeStoredCookieClear } = require('../utils/auth');
-const { resolvePublicUrl } = require('../utils/storage-url');
 const { downloadPrivateMedia, isPrivatePath, mapPrivateMedia } = require('../utils/shiguang-media');
+const { resolvePublicUrl } = require('../utils/storage-url');
+const { dbRpc } = require('./photo-api');
 
 // 只在当前会话内复用已经授权下载的临时文件。
 const mediaLinkCache = new Map();
@@ -85,68 +85,79 @@ async function summary(previous) {
   summarySessions.set(data, cookie);
   return data;
 }
-async function albumRootPhotos(isActive, onFirstPhoto) {
+async function boundAlbumAccessKey() {
+  const link = await api('/album');
+  const match = /^\/pages\/album\/detail\?key=([^&]+)$/.exec(link?.miniPath || '');
+  if (!match) throw new Error('绑定的相册暂不可用');
+  return decodeURIComponent(match[1]);
+}
+
+async function prepareAlbumThumbnail(photo, cookie) {
+  const source = String(photo.thumbnail_url || '').trim();
+  if (isPrivatePath(source)) {
+    const thumbnail = `/api/shiguang/album-assets/${encodeURIComponent(photo.id)}?variant=thumbnail`;
+    return source === thumbnail ? downloadPrivateMedia(source, cookie).catch(() => '') : '';
+  }
+  if (!source || source.startsWith('/api/')) return '';
+  const url = resolvePublicUrl(source);
+  if (!/^https?:\/\//i.test(url)) return '';
+  return new Promise(resolve => {
+    wx.getImageInfo({ src: url, success: info => resolve(info.path || url), fail: () => resolve('') });
+  });
+}
+
+async function albumRootPhotos(isActive, onPhotos) {
   const cookie = getStoredCookie();
   const canLoad = () => isActive() && getStoredCookie() === cookie;
-  const resolvePhoto = async photo => {
-    if (!canLoad()) return null;
-    try {
-      const url = isPrivatePath(photo.url) ? await downloadPrivateMedia(photo.url, cookie) : resolvePublicUrl(photo.url);
-      return canLoad() && url ? { id: photo.id, url } : null;
-    } catch {
-      return null;
-    }
-  };
-  const link = await api('/album');
-  const match = /[?&]key=([^&]+)/.exec(link?.miniPath || '');
-  if (!match) throw new Error('绑定的相册暂不可用');
-  const accessKey = decodeURIComponent(match[1]);
+  const accessKey = await boundAlbumAccessKey();
+  if (!canLoad()) return;
   const pageSize = 40;
-  const photos = new Map();
-  let firstPhotoId;
-  let firstPhotoTask;
-
-  for (let page = 1; canLoad(); page += 1) {
+  const readPage = async page => {
     const result = await dbRpc('get_album_photo_page', {
       input_key: accessKey, folder_id: '__ROOT__', page_no: page, page_size: pageSize,
     }, { keepPrivatePaths: true });
-    if (!canLoad()) return null;
-    const payload = result?.data;
-    const rows = payload?.photos;
-    if (result?.error || !Array.isArray(rows)) throw new Error('相册照片暂时无法加载');
-    for (const photo of rows) {
-      if (!photo?.id || String(photo.folder_id ?? '').trim()) continue;
-      const url = photo.thumbnail_url || photo.preview_url || photo.original_url || photo.url;
-      if (url && !photos.has(photo.id)) photos.set(photo.id, { id: photo.id, url });
-    }
-    if (!firstPhotoTask && photos.size) {
-      const firstPhoto = photos.values().next().value;
-      firstPhotoId = firstPhoto.id;
-      firstPhotoTask = (async () => {
-        const prepared = await resolvePhoto(firstPhoto);
-        if (!prepared) return null;
-        try {
-          const info = await new Promise((resolve, reject) => {
-            wx.getImageInfo({ src: prepared.url, success: resolve, fail: reject });
-          });
-          if (!canLoad()) return null;
-          const preview = isPrivatePath(firstPhoto.url) ? prepared : { ...prepared, url: info.path || prepared.url };
-          onFirstPhoto(preview);
-          return preview;
-        } catch {
-          return null;
-        }
-      })();
-    }
-    const hasMore = typeof payload.has_more === 'boolean' ? payload.has_more : page * pageSize < Number(payload.total);
-    if (!hasMore) {
-      const remaining = [...photos.values()].filter(photo => photo.id !== firstPhotoId);
-      const [firstPhoto, local] = await Promise.all([firstPhotoTask, mapPrivateMedia(remaining, resolvePhoto)]);
-      return canLoad() ? [firstPhoto, ...local].filter(Boolean) : null;
-    }
-    if (!rows.length) throw new Error('相册照片暂时无法加载');
+    if (result?.error || !Array.isArray(result?.data?.photos)) throw new Error('相册照片暂时无法加载');
+    return result.data;
+  };
+  let payload = await readPage(1);
+  const seen = new Set();
+  let hasReadyPhoto = false;
+  for (let page = 1; canLoad(); page += 1) {
+    const photos = payload.photos.filter(photo => {
+      if (!photo?.id || seen.has(photo.id) || String(photo.folder_id ?? '').trim()) return false;
+      seen.add(photo.id);
+      return true;
+    });
+    let cursor = 0;
+    const settled = new Map();
+    const previews = mapPrivateMedia(photos, async photo => {
+      if (!canLoad()) return;
+      const url = await prepareAlbumThumbnail(photo, cookie);
+      settled.set(photo.id, url);
+      if (!canLoad()) return;
+      const available = [];
+      while (cursor < photos.length && settled.has(photos[cursor].id)) {
+        const { id, shot_date: shotDate } = photos[cursor++];
+        const readyUrl = settled.get(id);
+        settled.delete(id);
+        if (readyUrl) available.push({ id, url: readyUrl, date: shotDate?.replace(/-/g, '.') || '' });
+      }
+      if (available.length) {
+        hasReadyPhoto = true;
+        onPhotos(available);
+      }
+    });
+    const nextRequest = payload.has_more && payload.photos.length
+      ? readPage(page + 1).then(data => ({ data }), error => ({ error }))
+      : null;
+    await previews;
+    const nextPage = await nextRequest;
+    if (!canLoad()) return;
+    if (!nextPage) break;
+    if (nextPage.error) throw nextPage.error;
+    payload = nextPage.data;
   }
-  return null;
+  if (seen.size && !hasReadyPhoto && canLoad()) throw new Error('相册照片暂时无法加载');
 }
 function time(value) { return value ? new Date(new Date(value).getTime() + 8 * 3600000).toISOString().slice(0, 19).replace('T', ' ') : ''; }
 function manage(entry, data) { return ['anniversary', 'wish', 'promise'].includes(entry.kind) || entry.createdBy === data.userId && (entry.kind !== 'mood' || entry.moodDate === data.today); }
@@ -274,4 +285,4 @@ function preferSpaceEntry({ appEntry = false, appData: data = getApp()?.globalDa
   }
   return navigation.promise;
 }
-module.exports = { api, upload, mediaLinks, mediaDisplayUrl, summary, albumRootPhotos, uuid, time, manage, fail, getMembership, subscribeMembership, refreshMembership, withSpaceTab, chooseImage, confirm, preferSpaceEntry, reserveManualNavigation };
+module.exports = { api, upload, mediaLinks, mediaDisplayUrl, summary, boundAlbumAccessKey, albumRootPhotos, uuid, time, manage, fail, getMembership, subscribeMembership, refreshMembership, withSpaceTab, chooseImage, confirm, preferSpaceEntry, reserveManualNavigation };

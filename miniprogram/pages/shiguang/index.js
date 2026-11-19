@@ -65,9 +65,7 @@ Page({
     this.sessionCookie = cookie;
     this.summaryRequest = null;
     this._summary = null;
-    this.albumPreviewKey = '';
     this.albumPreviewRequest = null;
-    this.overviewReady = false;
     this.clearAlbumWaitTimer();
     this.clearOverviewTimer();
     this.setAlbumSlide([], 0, {
@@ -89,9 +87,11 @@ Page({
       if (!isActive()) return;
       this._summary = summary;
       if (moodRevision === this.moodRevision) this.updateSummary(summary);
-      void this.loadAlbumPreview(summary);
+      if (cookie && !this._summary) void this.loadAlbumPreview();
+      this.scheduleOverviewRotation();
       await sg.refreshMembership();
       if (isActive()) sg.preferSpaceEntry();
+      void this.loadAlbumPreview(summary.album?.id || '');
     } catch (error) {
       if (!isActive()) return;
       if ([401, 403].includes(error.statusCode)) this.resetOverview(cookie);
@@ -110,51 +110,47 @@ Page({
     }
     this.setData(patch);
   },
-  async loadAlbumPreview({ space, userId, album }) {
-    const key = album?.id ? JSON.stringify([space.id, userId, album.id]) : '';
-    if (this.albumPreviewKey !== key) {
-      this.albumPreviewKey = key;
-      this.albumPreviewRequest = null;
-      this.overviewReady = false;
-      this.clearAlbumWaitTimer();
-      this.clearOverviewTimer();
-      this.setAlbumSlide([], 0, { albumPreviewError: false });
-    }
-    if (!key || this.albumPreviewRequest) {
-      if (!key) {
-        this.overviewReady = true;
-        if (this.data.overviewLoading) this.setData({ overviewLoading: false });
-      }
-      this.scheduleOverviewRotation();
+  async loadAlbumPreview(albumId) {
+    const previous = this.albumPreviewRequest;
+    if (previous && (albumId === undefined || (albumId && (!previous.albumId || previous.albumId === albumId)))) {
+      if (albumId) previous.albumId = albumId;
       return;
     }
-    const request = {};
+    if (previous) {
+      this.albumPreviewRequest = null;
+      this.clearAlbumWaitTimer();
+      this.clearOverviewTimer();
+      this.setAlbumSlide([], 0, { overviewLoading: !this.data.summary, albumPreviewError: false });
+    }
+    if (albumId === '') {
+      if (this.data.overviewLoading) this.setData({ overviewLoading: false });
+      return;
+    }
+    const request = { albumId, pending: true };
     this.albumPreviewRequest = request;
     const cookie = this.sessionCookie;
-    const isActive = () => this.albumPreviewRequest === request && getStoredCookie() === cookie;
+    const isActive = () => this.albumPreviewRequest === request && request.pending && getStoredCookie() === cookie;
     if (this.data.overviewLoading) {
       this.albumWaitTimer = setTimeout(() => {
         if (isActive()) this.setData({ overviewLoading: false });
       }, FIRST_ALBUM_PHOTO_WAIT_MS);
     }
     try {
-      const albumPhotos = await sg.albumRootPhotos(isActive, firstPhoto => {
+      await sg.albumRootPhotos(isActive, photos => {
         if (!isActive()) return;
         this.clearAlbumWaitTimer();
-        this.setAlbumSlide([firstPhoto], 0, { overviewLoading: false, albumPreviewError: false });
+        const { albumPhotos, albumPhotoIndex } = this.data;
+        this.setAlbumSlide([...albumPhotos, ...photos], albumPhotoIndex, { overviewLoading: false, albumPreviewError: false });
+        this.scheduleOverviewRotation();
       });
-      if (!albumPhotos || !isActive()) return;
-      const selected = this.data.albumPhotos[this.data.albumPhotoIndex];
-      const albumPhotoIndex = selected ? Math.max(0, albumPhotos.findIndex(photo => photo.id === selected.id)) : 0;
-      this.setAlbumSlide(albumPhotos, albumPhotoIndex, { albumPreviewError: false });
     } catch {
-      if (isActive()) this.setData({ albumPreviewError: true });
+      if (isActive() && !this.data.albumPhotos.length) this.setData({ albumPreviewError: true });
     } finally {
       if (isActive()) {
         this.clearAlbumWaitTimer();
         if (this.data.overviewLoading) this.setData({ overviewLoading: false });
-        this.overviewReady = true;
         this.scheduleOverviewRotation();
+        request.pending = false;
       }
     }
   },
@@ -204,13 +200,16 @@ Page({
     this.overviewDue = false;
   },
   scheduleOverviewRotation() {
-    const { albumPhotos, albumNextIndex, anniversarySlides } = this.data;
-    if (this.hidden || !this.overviewReady || this.overviewTimer || (albumPhotos.length < 2 && anniversarySlides.length < 2)) return;
+    const { summary, overviewLoading, albumPhotos, albumPhotoIndex, albumNextIndex, anniversarySlides } = this.data;
+    const loadingAlbum = this.albumPreviewRequest?.pending;
+    if (this.hidden || !summary || overviewLoading || this.overviewTimer) return;
+    if (loadingAlbum ? !albumPhotos.length : albumPhotos.length < 2 && anniversarySlides.length < 2) return;
     if (this.overviewDue) {
       if (albumPhotos.length > 1 && !this.loadedAlbumSources.has(albumPhotos[albumNextIndex].url)) return;
       this.overviewDue = false;
       this.stepOverview(1);
     }
+      if (loadingAlbum && albumPhotoIndex + 1 >= albumPhotos.length) return;
     this.overviewTimer = setTimeout(() => {
       this.overviewTimer = null;
       this.overviewDue = true;
