@@ -33,3 +33,34 @@ button.sg-action--primary { background: #ffd894; border-color: #efc076; }
 button.sg-action--selected { background: #ffedcd; border-color: #d8b37e; }
 button.sg-action[disabled] { opacity: 0.55; color: #674a37; }
 button.sg-action:active { opacity: 0.72; }
+
+.sg-media-composer { display: flex; flex-direction: column; gap: 12rpx; min-width: 0; }
+.sg-media-label { color: #785b49; font-size: 24rpx; font-weight: 600; }
+button.sg-media-upload { justify-content: flex-start; gap: 16rpx; padding: 12rpx 20rpx; background: #fff1d9; }
+.sg-media-types { margin-left: auto; color: #785b49; font-size: 22rpx; font-weight: 400; white-space: nowrap; }
+.sg-media-chevron { flex: none; width: 10rpx; height: 10rpx; border: solid currentColor; border-width: 0 2rpx 2rpx 0; transform: rotate(45deg); }
+.sg-media-chevron--open { transform: rotate(225deg); }
+.sg-media-tools button.sg-action { min-height: 64rpx; padding: 8rpx 4rpx; font-size: 24rpx; }
+.sg-media-tools button.sg-media-recording { color: #9e423a; border-color: #eab5aa; background: #fff0ec; }
+.sg-media-item { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; min-width: 0; padding: 6rpx 14rpx; border-radius: 16rpx; background: #fff7ea; }
+.sg-media-filename { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sg-media-item > .sg-muted { flex: none; }
+button.sg-media-preview, button.sg-media-remove {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  min-height: 62rpx;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #674a37;
+  font-size: 24rpx;
+  font-weight: 600;
+  line-height: 1.4;
+}
+button.sg-media-remove { flex: none; padding: 0 6rpx; color: #785b49; font-size: 22rpx; font-weight: 400; }
+button.sg-media-preview::after, button.sg-media-remove::after { border: 0; }
+button.sg-media-preview[disabled], button.sg-media-remove[disabled] { opacity: .55; background: transparent; }
+.sg-media-thumbnail { flex: none; width: 62rpx; height: 62rpx; border-radius: 12rpx; }

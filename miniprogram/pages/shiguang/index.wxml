@@ -4,10 +4,9 @@
     <block wx:if="{{summary && !overviewLoading}}">
       <view class="space-members">
         <view class="space-member {{index === 0 ? 'space-member--left' : ''}} {{item.role === 'boy' ? 'space-member--boy' : 'space-member--girl'}}" wx:for="{{summary.space.members}}" wx:key="userId">
-          <view class="space-member__portrait">
+          <view class="space-member__portrait" data-user-id="{{item.userId}}" bindtap="editProfile" hover-class="{{item.userId === summary.userId ? 'space-pressed' : 'none'}}">
             <image wx:if="{{item.avatarUrl}}" class="space-member__avatar" src="{{item.avatarUrl}}" mode="aspectFill" />
             <view wx:else class="space-member__avatar space-member__avatar--empty"><image src="/images/icons/user-brown.svg" mode="aspectFit" /></view>
-            <button wx:if="{{item.userId === summary.userId}}" size="mini" class="space-member__edit" bindtap="editProfile" hover-class="space-pressed" aria-label="编辑我的空间资料"><image src="./images/pencil.svg" mode="aspectFit" /></button>
           </view>
           <view class="space-member__info">
             <text class="space-member__name">{{item.name}}</text>
@@ -34,6 +33,10 @@
               </view>
             </view>
             <view class="space-cover__caption">
+              <view wx:if="{{albumPhotos[albumPhotoIndex].date}}" class="space-cover__date">
+                <image src="/images/icons/calendar-brown.svg" mode="aspectFit" />
+                <text>{{albumPhotos[albumPhotoIndex].date}}</text>
+              </view>
               <view class="space-cover__entry"><text>点击进入</text><text class="space-cover__arrow">›</text></view>
             </view>
           </view>
@@ -49,11 +52,97 @@
         <view wx:if="{{letterOpen}}" class="space-letter__body">{{summary.space.letter}}</view>
       </view>
       <view class="space-modules">
-        <button class="space-module" wx:for="{{modules}}" wx:key="key" data-key="{{item.key}}" bindtap="open" hover-class="space-module--pressed">
-          <image class="space-module__icon" src="./images/{{item.key}}.svg" mode="aspectFit" />
-          <text class="space-module__label">{{item.label}}</text>
-          <image class="space-arrow" src="./images/arrow.svg" mode="aspectFit" />
-        </button>
+        <view class="space-module space-module--preview space-module--wish">
+          <view class="space-module__header" data-key="wish" bindtap="open" aria-role="button" aria-label="进入许愿池">
+            <view class="space-module__icon-badge"><image class="space-module__icon" src="./images/wish.svg" mode="aspectFit" /></view>
+            <text class="space-module__label">许愿池</text>
+            <view class="space-module__enter"><text>进入</text><text class="space-module__enter-arrow">›</text></view>
+          </view>
+          <view class="space-module__preview-body">
+            <view wx:if="{{preview && preview.wishes.length}}" class="space-module__preview-list">
+              <view wx:for="{{preview.wishes}}" wx:key="id" class="space-module__preview-row {{item.fulfilled ? 'space-module__wish--done' : ''}}">
+                <text class="space-module__check">{{item.fulfilled ? '✓' : ''}}</text>
+                <text class="space-module__wish-name">{{item.name}}</text>
+              </view>
+            </view>
+            <view wx:else class="space-module__preview-row space-module__wish-empty">
+              <text>{{preview.wishEmpty || (homePreviewFailed ? '暂时无法加载' : '加载中…')}}</text>
+            </view>
+          </view>
+          <view wx:if="{{preview.wishCount}}" class="space-module__preview-summary">
+            <view class="space-module__summary-group">
+              <text>共</text>
+              <text class="space-module__summary-count">{{preview.wishCount}}</text>
+              <text>个愿望</text>
+            </view>
+            <view class="space-module__summary-group">
+              <text>· 已实现</text>
+              <text class="space-module__summary-count">{{preview.fulfilledCount}}</text>
+              <text>个</text>
+            </view>
+          </view>
+        </view>
+        <view class="space-module space-module--preview space-module--promise">
+          <view class="space-module__header" data-key="promise" bindtap="open" aria-role="button" aria-label="进入心约">
+            <view class="space-module__icon-badge"><image class="space-module__icon" src="./images/promise.svg" mode="aspectFit" /></view>
+            <text class="space-module__label">心约</text>
+            <view class="space-module__enter"><text>进入</text><text class="space-module__enter-arrow">›</text></view>
+          </view>
+          <view class="space-module__preview-body {{preview.promises.length ? '' : 'space-module__promise-empty'}}">
+            <view wx:if="{{preview.promises.length}}" class="space-module__preview-list">
+              <view wx:for="{{preview.promises}}" wx:key="id" class="space-module__preview-row">
+                <text class="space-module__promise-title">{{item.title}}</text>
+              </view>
+            </view>
+            <block wx:else>
+              <text class="space-module__promise-heart" aria-hidden="true">♡</text>
+              <text>{{preview.promiseEmpty || (homePreviewFailed ? '暂时无法加载' : '加载中…')}}</text>
+            </block>
+          </view>
+          <view wx:if="{{preview.promiseCount}}" class="space-module__preview-summary">
+            <view class="space-module__summary-group">
+              <text>共</text>
+              <text class="space-module__summary-count">{{preview.promiseCount}}</text>
+              <text>条心约</text>
+            </view>
+          </view>
+        </view>
+        <view class="space-module">
+          <view class="space-module__header" data-key="whisper" bindtap="open" aria-role="button" aria-label="进入絮语">
+            <image class="space-module__icon" src="./images/whisper.svg" mode="aspectFit" />
+            <text class="space-module__label">絮语</text>
+            <view class="space-module__tabs" aria-label="絮语筛选">
+              <button class="space-module__tab {{whisperScope === 'latest' ? 'space-module__tab--active' : ''}}" catchtap="selectWhisperScope" data-scope="latest">最新</button>
+              <button class="space-module__tab {{whisperScope === 'mine' ? 'space-module__tab--active' : ''}}" catchtap="selectWhisperScope" data-scope="mine">我的</button>
+            </view>
+            <text class="space-module__enter">进入 ›</text>
+          </view>
+          <template is="whisper-preview" data="{{whisper: preview.whispers[whisperScope], whisperScope, whisperMediaState, homePreviewFailed}}" />
+        </view>
+        <view class="space-module space-module--tickets">
+          <view class="space-module__header" data-key="tickets" bindtap="open" aria-role="button" aria-label="进入心意奖券">
+            <image class="space-module__icon" src="./images/tickets.svg" mode="aspectFit" />
+            <text class="space-module__label">心意奖券</text><text class="space-module__enter">进入 ›</text>
+          </view>
+          <view class="space-module__ticket-actions">
+            <view class="space-module__ticket-action" bindtap="open" data-key="tickets" aria-role="button">
+              <view class="space-module__wheel">♥</view>
+              <view class="space-module__ticket-copy">
+                <text class="space-module__ticket-title">转盘抽奖</text>
+                <text class="space-module__meta">剩余 {{summary.balances[summary.userId] || 0}} 次</text>
+              </view>
+              <view class="space-entry-arrow" />
+            </view>
+            <view class="space-module__ticket-action" bindtap="openMyCards" aria-role="button">
+              <image class="space-module__ticket-art" src="./images/tickets.svg" mode="aspectFit" />
+              <view class="space-module__ticket-copy">
+                <text class="space-module__ticket-title">我的卡券</text>
+                <text wx:if="{{preview.ticketCount}}" class="space-module__meta">已获得 {{preview.ticketCount}} 张</text>
+              </view>
+              <view class="space-entry-arrow" />
+            </view>
+          </view>
+        </view>
       </view>
     </block>
     <view wx:elif="{{!error}}" class="admin-loading-card admin-loading-card--page motion-fade-up motion-delay-2">
@@ -63,31 +152,72 @@
     </view>
   </view>
 </template>
+<template name="whisper-attachment-icon">
+  <image wx:if="{{kind === 'image'}}" class="space-module__image-icon" src="/images/tab/image.svg" mode="aspectFit" />
+  <view wx:elif="{{kind === 'audio' && playing}}" class="space-module__pause-icon" aria-hidden="true" />
+  <view wx:elif="{{kind === 'audio'}}" class="space-module__audio-icon" aria-hidden="true" />
+  <view wx:else class="space-module__video-icon" aria-hidden="true" />
+  <text>{{kind === 'image' ? '图片' : kind === 'video' ? '视频' : playing ? '暂停' : '音频'}}</text>
+</template>
+<template name="whisper-preview">
+  <view wx:if="{{whisper.author}}" class="space-module__whisper">
+    <view class="space-module__whisper-copy" data-key="whisper" bindtap="open" aria-role="button">
+      <view wx:if="{{whisper.text}}" class="space-module__whisper-text">{{whisper.text}}</view>
+      <view class="space-module__meta space-module__whisper-meta">
+        <text class="space-module__whisper-author">{{whisper.author}}</text><text>·</text><text>{{whisper.time}}</text>
+      </view>
+    </view>
+    <view wx:if="{{whisper.mediaKinds.length}}" class="space-module__whisper-media">
+      <button wx:if="{{whisper.single}}" class="space-module__attachment space-module__attachment--{{whisper.single}}" bindtap="openWhisperAttachment"
+        disabled="{{whisperMediaState === 'loading'}}" aria-label="{{whisper.single === 'image' ? '查看原图' : whisper.single === 'video' ? '播放视频' : whisperMediaState === 'playing' ? '暂停音频' : '播放音频'}}">
+        <template is="whisper-attachment-icon" data="{{kind: whisper.single, playing: whisperMediaState === 'playing'}}" />
+        <image wx:if="{{whisper.single === 'image' && whisper.imageUrl}}" class="space-module__attachment-image" src="{{whisper.imageUrl}}" mode="aspectFill" data-scope="{{whisperScope}}" data-url="{{whisper.imageUrl}}" binderror="onWhisperImageError" />
+      </button>
+      <block wx:else>
+        <view wx:for="{{whisper.mediaKinds}}" wx:for-item="kind" wx:key="*this" class="space-module__attachment space-module__attachment--{{kind}}">
+          <template is="whisper-attachment-icon" data="{{kind}}" />
+        </view>
+      </block>
+    </view>
+  </view>
+  <view wx:else class="space-module__whisper">
+    <text class="space-module__whisper-empty">{{whisper.text || (homePreviewFailed ? '暂时无法加载' : '加载中…')}}</text>
+  </view>
+</template>
 <view class="sg-page">
   <block wx:if="{{summary.publishState !== 'beta'}}">
     <primary-page-shell title="{{summary.space.name || '拾光空间'}}" subtitle="💕 记录我们的专属时光 💕" />
-    <scroll-view class="sg-scroll" scroll-y="{{!moodOpen}}" show-scrollbar="{{false}}"><template is="space-content" data="{{summary,error,overviewLoading,letterOpen,modules,albumPhotos,albumPhotoIndex,albumNextIndex,albumPreviousIndex,albumTouchBlocked,anniversarySlides,anniversaryIndex,albumPreviewError}}" /></scroll-view>
+    <scroll-view class="sg-scroll" scroll-y="{{!moodOpen && !whisperVideoUrl}}" show-scrollbar="{{false}}"><template is="space-content" data="{{summary,error,overviewLoading,letterOpen,preview: homePreview,homePreviewFailed,whisperScope,whisperMediaState,albumPhotos,albumPhotoIndex,albumNextIndex,albumPreviousIndex,albumTouchBlocked,anniversarySlides,anniversaryIndex,albumPreviewError}}" /></scroll-view>
     <app-bottom-nav currentPath="pages/shiguang/index" />
   </block>
-  <secondary-page-shell wx:else title="{{summary.space.name}}" scroll-y="{{!moodOpen}}" fallbackRoute="/pages/profile/beta/index"><template is="space-content" data="{{summary,error,overviewLoading,letterOpen,modules,albumPhotos,albumPhotoIndex,albumNextIndex,albumPreviousIndex,albumTouchBlocked,anniversarySlides,anniversaryIndex,albumPreviewError}}" /></secondary-page-shell>
-  <space-dialog wx:if="{{moodOpen}}" title="今天的心情" subtitle="点一下就记录，今天还可以更改。" busy="{{moodSaving}}" bind:close="closeMood">
-    <view class="sg-stack">
+  <secondary-page-shell wx:else title="{{summary.space.name}}" scroll-y="{{!moodOpen && !whisperVideoUrl}}" show-scrollbar="{{false}}" content-class="space-scroll--beta" fallbackRoute="/pages/profile/beta/index"><template is="space-content" data="{{summary,error,overviewLoading,letterOpen,preview: homePreview,homePreviewFailed,whisperScope,whisperMediaState,albumPhotos,albumPhotoIndex,albumNextIndex,albumPreviousIndex,albumTouchBlocked,anniversarySlides,anniversaryIndex,albumPreviewError}}" /></secondary-page-shell>
+  <space-dialog wx:if="{{whisperVideoUrl}}" title="絮语视频" compact="{{true}}" bind:close="closeWhisperVideo">
+    <video class="space-module__whisper-video" src="{{whisperVideoUrl}}" autoplay="{{true}}" controls="{{true}}" binderror="onWhisperVideoError" />
+  </space-dialog>
+  <space-dialog wx:if="{{moodOpen}}" title="今天的心情" compact="{{true}}" busy="{{moodSaving}}" bind:close="closeMood">
+    <view class="sg-stack mood-content">
       <view class="sg-actions sg-actions--three mood-options">
-        <button wx:for="{{quickMoods}}" wx:key="name" class="sg-action {{moodCurrent === item.name ? 'sg-action--selected' : ''}}" data-mood="{{item.name}}" disabled="{{moodSaving}}" bindtap="pickMood">
+        <button wx:for="{{quickMoods}}" wx:key="name" class="sg-action mood-option--{{item.tone}} {{moodCurrent === item.name ? 'sg-action--selected' : ''}}" data-mood="{{item.name}}" disabled="{{moodSaving}}" bindtap="pickMood">
           <text class="mood-option__icon">{{item.icon}}</text><text>{{item.name}}</text>
         </button>
       </view>
-      <view wx:if="{{moodSaving}}" class="sg-muted">正在保存…</view>
-      <view wx:if="{{moodError}}" class="sg-error">{{moodError}}</view>
-      <view class="sg-actions">
-        <button class="sg-action {{moodExpanded ? 'sg-action--selected' : ''}}" disabled="{{moodSaving}}" bindtap="toggleMoodDetails">{{moodExpanded ? '收起自定义' : '展开自定义'}}</button>
-        <button class="sg-action" disabled="{{moodSaving}}" bindtap="openMoodHistory" aria-label="更多心情记录">更多</button>
+      <view class="mood-footer">
+        <button class="sg-action" disabled="{{moodSaving}}" bindtap="toggleMoodDetails">
+          <text>{{moodExpanded ? '收起自定义' : '自定义心情'}}</text>
+          <view class="space-entry-arrow {{moodExpanded ? 'space-entry-arrow--up' : 'space-entry-arrow--down'}}" />
+        </button>
+        <button class="sg-action" disabled="{{moodSaving}}" bindtap="openMoodHistory">
+          <text>心情记录</text>
+          <view class="space-entry-arrow" />
+        </button>
       </view>
-      <form wx:if="{{moodExpanded}}" class="sg-stack mood-details" bindsubmit="submitMood">
-        <label class="sg-field"><text class="sg-label">心情名称</text><input class="sg-input" value="{{moodName}}" placeholder="今天感觉怎么样？" bindinput="editMoodName" maxlength="30" disabled="{{moodSaving}}" /></label>
-        <label class="sg-field"><text class="sg-label">描述（选填）</text><textarea class="sg-input sg-area" value="{{moodDescription}}" placeholder="写下一点今天的感受" bindinput="editMoodDescription" maxlength="1000" disabled="{{moodSaving}}" /></label>
+      <form wx:if="{{moodExpanded}}" class="mood-details" bindsubmit="submitMood">
+        <label class="sg-field"><text class="sg-label">心情</text><input class="sg-input" value="{{moodName}}" bindinput="editMoodName" maxlength="30" disabled="{{moodSaving}}" /></label>
+        <label class="sg-field"><text class="sg-label">感受（选填）</text><textarea class="sg-input sg-area" value="{{moodDescription}}" bindinput="editMoodDescription" maxlength="1000" disabled="{{moodSaving}}" /></label>
         <button class="sg-action sg-action--primary" form-type="submit" loading="{{moodSaving}}" disabled="{{moodSaving}}">保存心情</button>
       </form>
+      <view wx:if="{{moodSaving}}" class="sg-muted">正在保存…</view>
+      <view wx:if="{{moodError}}" class="sg-error">{{moodError}}</view>
     </view>
   </space-dialog>
 </view>

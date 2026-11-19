@@ -1,0 +1,41 @@
+<template name="message-media">
+  <view class="sg-media-composer">
+    <text class="sg-media-label">附件（选填）</text>
+    <button class="sg-action sg-media-upload" disabled="{{busy || attachmentBusy}}" bindtap="toggleAttachmentUpload">
+      <text>上传附件</text><text class="sg-media-types">图片 · 视频 · 音频</text><view class="sg-media-chevron {{uploadOpen ? 'sg-media-chevron--open' : ''}}" />
+    </button>
+    <view wx:if="{{uploadOpen}}" class="sg-actions sg-actions--three sg-media-tools">
+      <button class="sg-action" disabled="{{busy || attachmentBusy}}" data-source="album" bindtap="pickAttachmentImage">{{media.image ? '更换图片' : '图片'}}</button>
+      <button class="sg-action" disabled="{{busy || attachmentBusy}}" data-field="video" data-source="album" bindtap="pickAttachmentFile">{{media.video ? '更换视频' : '视频'}}</button>
+      <button class="sg-action" disabled="{{busy || attachmentBusy}}" data-field="audio" bindtap="pickAttachmentFile">{{media.audio ? '更换音频' : '音频'}}</button>
+    </view>
+    <view wx:if="{{selectedAttachment}}" class="sg-media-item">
+      <image wx:if="{{selectedAttachment.imageUrl}}" src="{{selectedAttachment.imageUrl}}" class="sg-media-thumbnail" mode="aspectFill" />
+      <text class="sg-media-filename">{{selectedAttachment.name}}</text>
+      <text class="sg-muted">{{selectedAttachment.failed ? '上传失败，未添加' : '正在上传…'}}</text>
+      <button wx:if="{{selectedAttachment.failed}}" class="sg-media-remove" disabled="{{busy || attachmentBusy}}" bindtap="dismissFailedAttachment">移除</button>
+    </view>
+    <view class="sg-actions sg-actions--three sg-media-tools">
+      <button class="sg-action {{recording ? 'sg-media-recording' : ''}}" disabled="{{busy || (attachmentBusy && !recording)}}" bindtap="recordAttachment">{{recording ? '结束录音' : '录音'}}</button>
+      <button class="sg-action" disabled="{{busy || attachmentBusy}}" data-source="camera" bindtap="pickAttachmentImage">拍照</button>
+      <button class="sg-action" disabled="{{busy || attachmentBusy}}" data-field="video" data-source="camera" bindtap="pickAttachmentFile">录像</button>
+    </view>
+    <view wx:if="{{recording}}" class="sg-muted">录音中 · 最长 3 分钟</view>
+    <view wx:if="{{media.image}}" class="sg-media-item">
+      <button class="sg-media-preview" disabled="{{busy || attachmentBusy}}" data-field="image" bindtap="openAttachment">
+        <image wx:if="{{imageUrl}}" src="{{imageUrl}}" data-url="{{imageUrl}}" binderror="onAttachmentImageError" class="sg-media-thumbnail" mode="aspectFill" />查看原图
+      </button>
+      <button class="sg-media-remove" disabled="{{busy || attachmentBusy}}" data-field="image" bindtap="removeAttachment" aria-label="移除图片">移除</button>
+    </view>
+    <view wx:if="{{media.video}}" class="sg-media-item">
+      <button class="sg-media-preview" disabled="{{busy || attachmentBusy}}" data-field="video" bindtap="openAttachment">播放视频</button>
+      <button class="sg-media-remove" disabled="{{busy || attachmentBusy}}" data-field="video" bindtap="removeAttachment" aria-label="移除视频">移除</button>
+    </view>
+    <view wx:if="{{media.audio}}" class="sg-media-item">
+      <button class="sg-media-preview" disabled="{{busy || attachmentBusy}}" bindtap="playAttachment">播放音频</button>
+      <button class="sg-media-remove" disabled="{{busy || attachmentBusy}}" data-field="audio" bindtap="removeAttachment" aria-label="移除音频">移除</button>
+    </view>
+    <view wx:if="{{attachmentBusy && !recording && !selectedAttachment}}" class="sg-muted">正在处理附件…</view>
+    <view wx:if="{{mediaError}}" class="sg-error">{{mediaError}}</view>
+  </view>
+</template>

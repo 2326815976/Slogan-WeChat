@@ -1,5 +1,6 @@
 const sg = require('../../services/shiguang');
 const { getStoredCookie, subscribeStoredCookieClear } = require('../../utils/auth');
+const { loadHomePreview, loadWhisperImages } = require('./home-preview');
 const OVERVIEW_REFRESH_INTERVAL = 5000;
 const OVERVIEW_ROTATION_INTERVAL = 6000;
 const FIRST_ALBUM_PHOTO_WAIT_MS = 8000;
@@ -30,11 +31,12 @@ function stepIndex(current, count, step) {
 Page({
   data: { summary: null, error: '', overviewLoading: true, letterOpen: false, albumPhotos: [], albumPhotoIndex: 0,
   albumNextIndex: 0, albumPreviousIndex: 0, albumTouchBlocked: false,
-  anniversarySlides: [], anniversaryIndex: 0, albumPreviewError: false, modules: [
-    { key: 'wish', label: '许愿池' }, { key: 'promise', label: '心约' },
-    { key: 'whisper', label: '絮语' },
-    { key: 'collection', label: '拾物采集' }, { key: 'tickets', label: '心意奖券' },
-  ], quickMoods: [{ name: '开心', icon: '😄' }, { name: '平静', icon: '😌' }, { name: '难过', icon: '😢' }], moodOpen: false, moodExpanded: false,
+  anniversarySlides: [], anniversaryIndex: 0, albumPreviewError: false,
+  homePreview: null, homePreviewFailed: false, whisperScope: 'latest', whisperMediaState: '', whisperVideoUrl: '', quickMoods: [
+    { name: '开心', icon: '😄', tone: 'happy' },
+    { name: '平静', icon: '😌', tone: 'calm' },
+    { name: '难过', icon: '😢', tone: 'sad' },
+  ], moodOpen: false, moodExpanded: false,
   moodCurrent: '', moodName: '', moodDescription: '', moodError: '', moodSaving: false },
   onLoad() {
     this.sessionCookie = getStoredCookie();
@@ -42,6 +44,7 @@ Page({
   },
   onShow() {
     this.hidden = false;
+    this.homePreviewRequest = null;
     sg.preferSpaceEntry();
     clearInterval(this.timer);
     void this.load();
@@ -58,11 +61,15 @@ Page({
   },
   stopRefreshing() {
     this.hidden = true;
+    this.clearWhisperMedia();
+    this.homePreviewRequest = null;
     clearInterval(this.timer);
     this.clearOverviewTimer();
   },
   resetOverview(cookie) {
     this.sessionCookie = cookie;
+    this.clearWhisperMedia();
+    this.homePreviewRequest = null;
     this.summaryRequest = null;
     this._summary = null;
     this.albumPreviewRequest = null;
@@ -71,6 +78,7 @@ Page({
     this.setAlbumSlide([], 0, {
       summary: null, error: '', overviewLoading: true, albumPreviewError: false,
       anniversarySlides: [], anniversaryIndex: 0, letterOpen: false, moodOpen: false,
+      homePreview: null, homePreviewFailed: false, whisperScope: 'latest',
       moodCurrent: '', moodName: '', moodDescription: '', moodError: '',
     });
   },
@@ -83,15 +91,16 @@ Page({
     const isActive = () => !this.hidden && this.summaryRequest === request && getStoredCookie() === cookie;
     const moodRevision = this.moodRevision;
     try {
+      if (cookie && !this._summary) void this.loadAlbumPreview();
       const summary = await sg.summary(this._summary);
       if (!isActive()) return;
       this._summary = summary;
+      void this.loadAlbumPreview(summary.album?.id || '');
       if (moodRevision === this.moodRevision) this.updateSummary(summary);
-      if (cookie && !this._summary) void this.loadAlbumPreview();
+      void this.loadHomePreview(summary);
       this.scheduleOverviewRotation();
       await sg.refreshMembership();
       if (isActive()) sg.preferSpaceEntry();
-      void this.loadAlbumPreview(summary.album?.id || '');
     } catch (error) {
       if (!isActive()) return;
       if ([401, 403].includes(error.statusCode)) this.resetOverview(cookie);
@@ -110,6 +119,110 @@ Page({
     }
     this.setData(patch);
   },
+  async loadHomePreview(summary) {
+    const scope = `${summary.space.id}:${summary.userId}`;
+    if (this.homePreviewRequest?.scope === scope) return;
+    if (this.homePreviewScope !== scope) {
+      this.homePreviewScope = scope;
+      this.setData({ homePreview: null, homePreviewFailed: false, whisperScope: 'latest' });
+    }
+    const request = { scope };
+    this.homePreviewRequest = request;
+    const cookie = this.sessionCookie;
+    const isActive = () => !this.hidden && this.homePreviewRequest === request && getStoredCookie() === cookie;
+    try {
+      const homePreview = await loadHomePreview(summary);
+      if (!isActive()) return;
+      this.setData({ homePreview, homePreviewFailed: false });
+      const imageUrls = await loadWhisperImages(homePreview.whispers).catch(() => null);
+      if (imageUrls && isActive()) {
+        this.setData({
+          'homePreview.whispers.latest.imageUrl': imageUrls.latest,
+          'homePreview.whispers.mine.imageUrl': imageUrls.mine,
+        });
+      }
+    } catch {
+      if (isActive()) this.setData({ homePreviewFailed: true });
+    }
+  },
+  selectWhisperScope(event) {
+    const { scope } = event.currentTarget.dataset;
+    if (scope === this.data.whisperScope) return;
+    this.clearWhisperMedia();
+    this.setData({ whisperScope: scope });
+  },
+  clearWhisperMedia() {
+    this.whisperMediaRequest = null;
+    const audio = this.whisperAudio;
+    this.whisperAudio = null;
+    audio?.destroy();
+    if (this.data.whisperMediaState || this.data.whisperVideoUrl) this.setData({ whisperMediaState: '', whisperVideoUrl: '' });
+  },
+  async openWhisperAttachment() {
+    const { whisperScope, whisperMediaState } = this.data;
+    const attachment = this.data.homePreview?.whispers[whisperScope];
+    if (!attachment?.single || whisperMediaState === 'loading') return;
+    const { single, reference } = attachment;
+    if (single === 'audio' && this.whisperAudio) {
+      if (whisperMediaState === 'playing') this.whisperAudio.pause();
+      else {
+        this.setData({ whisperMediaState: 'loading' });
+        this.whisperAudio.play();
+      }
+      return;
+    }
+    const request = this.whisperMediaRequest = {};
+    const cookie = this.sessionCookie;
+    const isActive = () => !this.hidden && this.whisperMediaRequest === request && getStoredCookie() === cookie;
+    this.setData({ whisperMediaState: 'loading' });
+    try {
+      const url = sg.mediaDisplayUrl(reference, await sg.mediaLinks([reference]));
+      if (!isActive()) return;
+      if (!url) throw new Error('媒体暂时无法打开');
+      if (single === 'image') {
+        wx.previewImage({ urls: [url], fail: () => {
+          if (isActive()) wx.showToast({ title: '原图暂时无法打开', icon: 'none' });
+        } });
+      } else if (single === 'video') {
+        this.setData({ whisperVideoUrl: url });
+      } else {
+        const audio = this.whisperAudio = wx.createInnerAudioContext();
+        const setPlayback = state => {
+          if (isActive() && this.whisperAudio === audio) this.setData({ whisperMediaState: state });
+        };
+        audio.onPlay(() => setPlayback('playing'));
+        audio.onPause(() => setPlayback(''));
+        audio.onEnded(() => setPlayback(''));
+        audio.onError(() => {
+          if (!isActive() || this.whisperAudio !== audio) return;
+          this.clearWhisperMedia();
+          wx.showToast({ title: '音频暂时无法播放', icon: 'none' });
+        });
+        audio.src = url;
+        audio.play();
+      }
+    } catch {
+      if (isActive()) {
+        this.clearWhisperMedia();
+        const title = single === 'image' ? '原图暂时无法打开' : single === 'video' ? '视频暂时无法播放' : '音频暂时无法播放';
+        wx.showToast({ title, icon: 'none' });
+      }
+    } finally {
+      if (isActive() && !this.whisperAudio) this.setData({ whisperMediaState: '' });
+    }
+  },
+  closeWhisperVideo() { this.setData({ whisperVideoUrl: '' }); },
+  onWhisperVideoError() {
+    this.closeWhisperVideo();
+    wx.showToast({ title: '视频暂时无法播放', icon: 'none' });
+  },
+  onWhisperImageError(event) {
+    const { scope, url } = event.currentTarget.dataset;
+    if (this.data.homePreview?.whispers[scope]?.imageUrl === url) {
+      this.setData({ [`homePreview.whispers.${scope}.imageUrl`]: '' });
+    }
+  },
+  openMyCards() { wx.navigateTo({ url: '/pages/shiguang/tickets?section=cards' }); },
   async loadAlbumPreview(albumId) {
     const previous = this.albumPreviewRequest;
     if (previous && (albumId === undefined || (albumId && (!previous.albumId || previous.albumId === albumId)))) {
@@ -147,10 +260,10 @@ Page({
       if (isActive() && !this.data.albumPhotos.length) this.setData({ albumPreviewError: true });
     } finally {
       if (isActive()) {
+        request.pending = false;
         this.clearAlbumWaitTimer();
         if (this.data.overviewLoading) this.setData({ overviewLoading: false });
         this.scheduleOverviewRotation();
-        request.pending = false;
       }
     }
   },
@@ -205,11 +318,11 @@ Page({
     if (this.hidden || !summary || overviewLoading || this.overviewTimer) return;
     if (loadingAlbum ? !albumPhotos.length : albumPhotos.length < 2 && anniversarySlides.length < 2) return;
     if (this.overviewDue) {
+      if (loadingAlbum && albumPhotoIndex + 1 >= albumPhotos.length) return;
       if (albumPhotos.length > 1 && !this.loadedAlbumSources.has(albumPhotos[albumNextIndex].url)) return;
       this.overviewDue = false;
       this.stepOverview(1);
     }
-      if (loadingAlbum && albumPhotoIndex + 1 >= albumPhotos.length) return;
     this.overviewTimer = setTimeout(() => {
       this.overviewTimer = null;
       this.overviewDue = true;
@@ -255,7 +368,7 @@ Page({
     const { summary, moodSaving, moodOpen } = this.data;
     if (!summary || moodSaving || !moodOpen) return;
     const mood = name.trim();
-    if (!mood) { this.setData({ moodError: '请输入心情名称' }); return; }
+    if (!mood) { this.setData({ moodError: '请输入心情' }); return; }
     const entry = summary.moods.find(record => record.createdBy === summary.userId);
     const payload = { mood, description: (description ?? entry?.payload.description ?? '').trim() };
     this.setData({ moodSaving: true, moodError: '' });
@@ -296,6 +409,23 @@ Page({
     });
   },
   toggleLetter() { this.setData({ letterOpen: !this.data.letterOpen }); },
-  editProfile() { wx.navigateTo({ url: '/pages/shiguang/profile' }); },
-  async open(e) { const key = e.currentTarget.dataset.key; try { if (key === 'album') { const link = await sg.api('/album'); wx.navigateTo({ url: link.miniPath }); } else wx.navigateTo({ url: key === 'tickets' ? '/pages/shiguang/tickets' : `/pages/shiguang/entries?kind=${key}` }); } catch (e) { sg.fail(this, e); } },
+  editProfile(event) {
+    if (event.currentTarget.dataset.userId !== this.data.summary?.userId) return;
+    wx.navigateTo({ url: '/pages/shiguang/profile' });
+  },
+  async open(e) {
+    const { key } = e.currentTarget.dataset;
+    try {
+      if (key === 'album') {
+        const link = await sg.api('/album');
+        const albumTitle = this.data.summary?.album?.title?.trim();
+        const titleParam = albumTitle ? `&albumTitle=${encodeURIComponent(albumTitle)}` : '';
+        wx.navigateTo({ url: `${link.miniPath}${titleParam}` });
+        return;
+      }
+      wx.navigateTo({ url: key === 'tickets' ? '/pages/shiguang/tickets' : `/pages/shiguang/entries?kind=${key}` });
+    } catch (error) {
+      sg.fail(this, error);
+    }
+  },
 });

@@ -21,10 +21,12 @@ async function api(path = '', method = 'GET', data) {
   const result = await requestJson(route, { method, data, header: { 'X-Shiguang-Channel': 'miniprogram' }, skipAuthRetry: true });
   return result.data;
 }
-async function upload(filePath, admin = false, audio = false) {
+async function upload(filePath, admin = false, audio = false, options = {}) {
   const result = await requestUpload('/api/shiguang/media', {
-    filePath, name: 'file', fileName: audio ? 'recording.mp3' : filePath.split('/').pop(),
-    ...(audio ? { contentType: 'audio/mpeg' } : {}), formData: admin ? { purpose: 'admin' } : {},
+    filePath, name: 'file', fileName: options.fileName || (audio ? 'recording.mp3' : filePath.split('/').pop()),
+    contentType: options.contentType || (audio ? 'audio/mpeg' : undefined),
+    formData: admin ? { purpose: 'admin' } : options.attachment ? { attachment: '1' } : {},
+    header: { 'X-Shiguang-Channel': 'miniprogram' },
   });
   return result.data.reference;
 }
@@ -224,15 +226,22 @@ function withSpaceTab(items, loggedIn) {
   if (!loggedIn || !member || !member.enabled) return items;
   return [{ key: 'shiguang', iconKey: 'hearts', pagePath: 'pages/shiguang/index', displayText: '拾光' }, ...items];
 }
-async function chooseImage() {
+async function chooseMedia(mediaType, sourceType, original = false) {
   const data = getApp().globalData;
   data.shiguangMediaChoosing = true;
   try {
-    return await new Promise((resolve, reject) => wx.chooseMedia({ count: 1, mediaType: ['image'], sourceType: ['camera', 'album'], success: result => resolve(result.tempFiles[0].tempFilePath), fail: reject }));
+    return await new Promise((resolve, reject) => wx.chooseMedia({
+      count: 1, mediaType: [mediaType], sourceType,
+      ...(original && mediaType === 'image' ? { sizeType: ['original'] } : {}),
+      ...(mediaType === 'video' && sourceType.includes('camera') ? { maxDuration: 30 } : {}),
+      success: result => resolve(result.tempFiles[0].tempFilePath), fail: reject,
+    }));
   } finally {
     data.shiguangMediaChoosing = false;
   }
 }
+function chooseImage(sourceType = ['camera', 'album'], original = false) { return chooseMedia('image', sourceType, original); }
+function chooseVideo(source = 'album') { return chooseMedia('video', [source]); }
 function confirm(content) { return new Promise(resolve => wx.showModal({ title: '请确认', content, success: r => resolve(r.confirm), fail: () => resolve(false) })); }
 let entryNavigation = null;
 function reserveManualNavigation(data = getApp()?.globalData) {
@@ -285,4 +294,4 @@ function preferSpaceEntry({ appEntry = false, appData: data = getApp()?.globalDa
   }
   return navigation.promise;
 }
-module.exports = { api, upload, mediaLinks, mediaDisplayUrl, summary, boundAlbumAccessKey, albumRootPhotos, uuid, time, manage, fail, getMembership, subscribeMembership, refreshMembership, withSpaceTab, chooseImage, confirm, preferSpaceEntry, reserveManualNavigation };
+module.exports = { api, upload, mediaLinks, mediaDisplayUrl, summary, boundAlbumAccessKey, albumRootPhotos, uuid, time, manage, fail, getMembership, subscribeMembership, refreshMembership, withSpaceTab, chooseImage, chooseVideo, confirm, preferSpaceEntry, reserveManualNavigation };

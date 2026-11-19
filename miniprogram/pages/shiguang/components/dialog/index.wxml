@@ -1,6 +1,6 @@
 <view class="dialog">
   <view class="dialog__backdrop" bindtap="close" catchtouchmove="keepBackgroundStill" />
-  <view class="dialog__panel" role="dialog" aria-label="{{title}}">
+  <view class="dialog__panel {{compact ? 'dialog__panel--compact' : ''}}" role="dialog" aria-label="{{title}}">
     <view class="dialog__header">
       <view class="dialog__heading">
         <text class="dialog__title">{{title}}</text>

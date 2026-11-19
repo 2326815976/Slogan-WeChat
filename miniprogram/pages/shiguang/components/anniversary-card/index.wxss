@@ -1,72 +1,146 @@
 :host { display: block; min-width: 0; }
 .anniversary-card {
   position: relative;
-  padding-top: 100%;
+  padding-top: var(--space-overview-ratio, 100%);
   overflow: hidden;
-  border-radius: 32rpx;
-  background: #fff2d8;
-  background-image: radial-gradient(ellipse at 100% 0%, rgba(229, 159, 154, 0.21), transparent 64%), linear-gradient(155deg, #fffaf1, #f5e5ca);
-  color: #66462f;
+  border-radius: 36rpx;
+  background:
+    radial-gradient(ellipse 58% 47% at 28% 118%, rgba(249, 211, 228, 0.53) 99%, transparent 100%),
+    radial-gradient(ellipse 70% 59% at 110% 118%, rgba(244, 197, 218, 0.52) 99%, transparent 100%),
+    linear-gradient(145deg, #fff9fc 15%, #fcecf3);
+  color: #71364e;
   font-family: var(--font-default);
-  box-shadow: inset 0 0 0 1rpx rgba(167, 114, 75, 0.16), 0 8rpx 16rpx rgba(213, 173, 111, 0.1);
+  box-shadow: 0 10rpx 22rpx rgba(162, 78, 116, 0.14);
 }
-.anniversary-entry {
+.anniversary-flourish {
   position: absolute;
-  right: 20rpx;
+  right: 5%;
+  bottom: 16%;
+  width: 40%;
+  height: 12%;
+  opacity: 0.68;
+  pointer-events: none;
+}
+.anniversary-flourish__heart {
+  position: absolute;
+  top: 0;
+  right: 5%;
+  width: 30%;
+  height: 80%;
+  filter: hue-rotate(-60deg) saturate(2);
+  transform: rotate(11deg);
+}
+.anniversary-footer {
+  position: absolute;
+  right: 16rpx;
   bottom: 0;
-  left: 20rpx;
+  left: 16rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6rpx 0 14rpx;
-  color: #78573e;
+  gap: 8rpx;
+  padding-bottom: 14rpx;
+  color: #7c4560;
   font-size: 22rpx;
-  line-height: 1.5;
+  line-height: 28rpx;
 }
+.anniversary-date { display: flex; flex: 1; align-items: center; gap: 6rpx; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.anniversary-date__icon { flex: none; width: 24rpx; height: 24rpx; filter: hue-rotate(-60deg); }
+.anniversary-date::after { content: ''; flex: none; width: 2rpx; height: 22rpx; margin: 0 auto; background: currentColor; opacity: 0.55; }
+.anniversary-entry { display: flex; flex: none; align-items: center; gap: 6rpx; margin-left: auto; padding: 4rpx 10rpx; white-space: nowrap; }
 .anniversary-arrow { font-size: 30rpx; line-height: 1; }
-/* 天数独立占据视觉中心；底部预留管理入口。 */
-.anniversary-swiper { position: absolute; top: 16rpx; left: 0; width: 100%; height: calc(100% - 69rpx); }
+.anniversary-swiper { position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 52rpx); }
 .anniversary-slide {
   height: 100%;
-  padding: 0 24rpx 12rpx;
+  padding: var(--space-overview-title-inset, 16rpx 20rpx) 8rpx;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 12rpx;
+  gap: 8rpx;
   text-align: center;
 }
-/* 名称与计时说明作为完整标题，四层内容均匀排布，避免集中挤在中间。 */
 .anniversary-heading {
-  display: block;
+  display: flex;
   flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
   width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 26rpx;
-  font-weight: 700;
-  line-height: 36rpx;
 }
+.anniversary-heading-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  min-width: 0;
+  overflow: hidden;
+  word-break: break-all;
+  font: var(--space-overview-title-font, 700 26rpx/36rpx var(--font-default));
+}
+.anniversary-heading-decoration {
+  display: flex;
+  flex: 1 0 auto;
+  align-items: center;
+  gap: 8rpx;
+  max-width: 94rpx;
+  color: #c57398;
+  font: 400 18rpx/1 Arial, sans-serif;
+}
+.anniversary-heading-decoration:last-child { flex-direction: row-reverse; }
+.anniversary-heading-decoration::before { content: ''; flex: 1; height: 2rpx; background: #ecc1d5; }
+.anniversary-count {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-overview-count-gap, 14rpx);
+  padding-top: var(--space-overview-count-gap, 10rpx);
+}
+.anniversary-caption {
+  padding: 4rpx 18rpx;
+  border-radius: 999rpx;
+  background: #f8dce9;
+  color: #7c4560;
+  font-size: 22rpx;
+  font-weight: 600;
+  line-height: 28rpx;
+}
+.anniversary-unit { color: #7c4560; font-size: 30rpx; font-weight: 600; line-height: 1; }
+.anniversary-value {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+  margin: auto 0;
+  transform: translateY(-5%);
+}
+.anniversary-value--accent::before,
+.anniversary-value--accent::after {
+  position: absolute;
+  right: calc(100% + 8rpx);
+  width: 17rpx;
+  height: 4rpx;
+  border-radius: 999rpx;
+  background: #e3a1bf;
+  content: '';
+}
+.anniversary-value--accent::before { top: 24%; transform: rotate(29deg); }
+.anniversary-value--accent::after { top: 43%; transform: rotate(-12deg); }
 .anniversary-number {
   flex: none;
-  color: #5b3d28;
+  color: #71364e;
   font-family: var(--font-default, "YouYuan", "Microsoft YaHei", sans-serif);
-  font-size: 100rpx;
-  font-weight: 600;
-  line-height: 112rpx;
+  font-size: var(--space-overview-number-size, 108rpx);
+  font-weight: 700;
+  line-height: 1;
   font-variant-numeric: lining-nums tabular-nums;
+  text-shadow: 2rpx 4rpx 4rpx rgba(156, 66, 108, 0.19);
 }
-.anniversary-number--wide { font-size: 84rpx; line-height: 92rpx; }
-.anniversary-number--medium { font-size: 70rpx; line-height: 76rpx; }
-.anniversary-number--compact { font-size: 50rpx; line-height: 54rpx; }
-.anniversary-unit { display: flex; flex: none; align-items: center; gap: 14rpx; width: 88%; color: #8d654a; font-size: 20rpx; line-height: 24rpx; }
-.anniversary-rule { flex: 1; border-bottom: 4rpx dotted rgba(141, 101, 74, 0.2); }
-.anniversary-date { flex: none; color: #8d654a; font-size: 22rpx; line-height: 28rpx; }
+.anniversary-number--wide { font-size: 72rpx; }
+.anniversary-number--medium { font-size: 60rpx; }
+.anniversary-number--compact { font-size: 44rpx; }
 .anniversary-empty {
   position: absolute;
-  top: 16rpx;
+  top: 0;
   right: 0;
   bottom: 53rpx;
   left: 0;
@@ -74,5 +148,6 @@
   align-items: center;
   justify-content: center;
 }
+.anniversary-empty__title { position: absolute; top: 0; padding: var(--space-overview-title-inset, 16rpx 20rpx) 0; }
 .anniversary-empty__icon { width: 80rpx; height: 80rpx; }
 .anniversary-pressed { opacity: 0.7; }

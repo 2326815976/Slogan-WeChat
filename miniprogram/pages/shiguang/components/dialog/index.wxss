@@ -56,3 +56,15 @@
 }
 .dialog__close--pressed { background: #f7e6cb; }
 .dialog__body { flex: 0 1 auto; min-height: 0; min-width: 0; overflow: hidden auto; overscroll-behavior: contain; padding: 24rpx 28rpx 28rpx; }
+.dialog__panel--compact { background: #fffdf8; border-color: #eadcc8; }
+.dialog__panel--compact .dialog__header {
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 104rpx;
+  padding: 22rpx 32rpx 10rpx;
+  border: 0;
+  background: transparent;
+}
+.dialog__panel--compact .dialog__body { padding: 12rpx 32rpx 16rpx; }
+.dialog__panel--compact .dialog__close { width: 72rpx; height: 72rpx; background: transparent; }
+.dialog__panel--compact .dialog__close--pressed { background: #f8f1e5; }
