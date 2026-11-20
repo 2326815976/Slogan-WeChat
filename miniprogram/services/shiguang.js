@@ -240,6 +240,51 @@ async function chooseMedia(mediaType, sourceType, original = false) {
     data.shiguangMediaChoosing = false;
   }
 }
+async function chooseMixedMedia() {
+  const data = getApp().globalData;
+  data.shiguangMediaChoosing = true;
+  try {
+    return await new Promise((resolve, reject) => wx.chooseMedia({
+      count: 1,
+      mediaType: ['image', 'video'],
+      sourceType: ['camera', 'album'],
+      maxDuration: 30,
+      camera: 'back',
+      success: result => {
+        const file = result.tempFiles[0] || {};
+        const path = String(file.tempFilePath || '');
+        const fileType = file.fileType || (/\.(mp4|mov|m4v|3gp|avi|webm)$/i.test(path) ? 'video' : 'image');
+        resolve({ ...file, fileType });
+      },
+      fail: reject,
+    }));
+  } finally {
+    data.shiguangMediaChoosing = false;
+  }
+}
+async function chooseMediaBatch(source = 'album', count = 3) {
+  const data = getApp().globalData;
+  data.shiguangMediaChoosing = true;
+  try {
+    return await new Promise((resolve, reject) => wx.chooseMedia({
+      count: source === 'camera' ? 1 : Math.max(1, Math.min(3, Number(count) || 1)),
+      mediaType: ['image', 'video'],
+      sourceType: [source],
+      maxDuration: 30,
+      camera: 'back',
+      success: result => resolve((result.tempFiles || []).map(file => {
+        const path = String(file.tempFilePath || '');
+        return {
+          ...file,
+          fileType: file.fileType || (/\.(mp4|mov|m4v|3gp|avi|webm)$/i.test(path) ? 'video' : 'image'),
+        };
+      })),
+      fail: reject,
+    }));
+  } finally {
+    data.shiguangMediaChoosing = false;
+  }
+}
 function chooseImage(sourceType = ['camera', 'album'], original = false) { return chooseMedia('image', sourceType, original); }
 function chooseVideo(source = 'album') { return chooseMedia('video', [source]); }
 function confirm(content) { return new Promise(resolve => wx.showModal({ title: '请确认', content, success: r => resolve(r.confirm), fail: () => resolve(false) })); }
@@ -294,4 +339,4 @@ function preferSpaceEntry({ appEntry = false, appData: data = getApp()?.globalDa
   }
   return navigation.promise;
 }
-module.exports = { api, upload, mediaLinks, mediaDisplayUrl, summary, boundAlbumAccessKey, albumRootPhotos, uuid, time, manage, fail, getMembership, subscribeMembership, refreshMembership, withSpaceTab, chooseImage, chooseVideo, confirm, preferSpaceEntry, reserveManualNavigation };
+module.exports = { api, upload, mediaLinks, mediaDisplayUrl, summary, boundAlbumAccessKey, albumRootPhotos, uuid, time, manage, fail, getMembership, subscribeMembership, refreshMembership, withSpaceTab, chooseImage, chooseVideo, chooseMixedMedia, chooseMediaBatch, confirm, preferSpaceEntry, reserveManualNavigation };

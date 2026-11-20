@@ -1,0 +1,13 @@
+<view class="sg-optional {{open ? 'sg-optional--open' : ''}} {{variant === 'attachments' ? 'sg-optional--attachments' : ''}}">
+  <button class="sg-optional-toggle" bindtap="toggle" aria-expanded="{{open}}">
+    <text class="sg-optional-label">{{label}}</text>
+    <view class="sg-optional-state">
+      <text wx:if="{{status}}" class="sg-optional-filled">{{status}}</text>
+      <text wx:elif="{{filled}}" class="sg-optional-filled">已填写</text>
+      <view class="sg-optional-chevron" aria-hidden="true" />
+    </view>
+  </button>
+  <view wx:if="{{open}}" class="sg-optional-content">
+    <slot />
+  </view>
+</view>

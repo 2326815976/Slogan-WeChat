@@ -1,5 +1,5 @@
 <import src="../message-media.wxml" />
-<space-dialog title="{{(entry ? '编辑' : '新增') + (kind === 'mood' ? '今日心情' : title)}}" busy="{{busy || attachmentBusy}}" bind:close="cancel">
+<space-dialog title="{{(entry ? '编辑' : '新增') + (kind === 'mood' ? '今日心情' : title)}}" compact="{{kind === 'whisper'}}" busy="{{busy || attachmentBusy}}" bind:close="cancel">
   <view class="sg-stack">
     <label wx:if="{{kind === 'anniversary' || kind === 'collection'}}" class="sg-field">
       <text class="sg-label">名称</text><input class="sg-input" maxlength="100" value="{{draft.name}}" disabled="{{busy}}" data-key="name" bindinput="input"/>
@@ -17,35 +17,51 @@
       <text class="sg-label">标题</text><input class="sg-input" maxlength="100" value="{{draft.title}}" disabled="{{busy}}" data-key="title" bindinput="input"/>
     </label>
     <block wx:if="{{kind === 'whisper'}}">
-      <label class="sg-field">
-        <text class="sg-label">正文</text><textarea class="sg-input sg-area" placeholder="写下想说的话…" maxlength="10000" value="{{draft.content}}" disabled="{{busy}}" data-key="content" bindinput="input" />
-      </label>
-      <label class="sg-field">
-        <text class="sg-label">标题（选填）</text><input class="sg-input" maxlength="100" value="{{draft.title}}" disabled="{{busy}}" data-key="title" bindinput="input" />
-      </label>
-      <template is="message-media" data="{{media, busy, attachmentBusy, recording, uploadOpen, imageUrl, mediaError, selectedAttachment}}" />
+      <view class="whisper-editor">
+        <view class="whisper-editor__head">
+          <text>正文</text>
+          <text>{{draft.content ? draft.content.length : 0}} / 10,000</text>
+        </view>
+        <textarea class="sg-input sg-area whisper-editor__input" placeholder="写下此刻想说的话…" maxlength="10000" value="{{draft.content}}" disabled="{{busy}}" data-key="content" bindinput="input" />
+        <view wx:if="{{topics.length}}" class="whisper-topic-preview">
+          <text class="whisper-topic-preview__label">话题</text>
+          <text wx:for="{{topics}}" wx:for-item="topic" wx:key="*this" class="whisper-topic-preview__tag">#{{topic}}</text>
+        </view>
+      </view>
+      <optional-section label="附件" variant="attachments" status="{{media.image || media.audio || media.video ? '已添加' : '选填'}}" filled="{{media.image || media.audio || media.video ? true : false}}">
+        <template is="message-media" data="{{media, busy, attachmentBusy, recording, uploadOpen, imageUrl, mediaError, selectedAttachment, editor: true}}" />
+      </optional-section>
     </block>
     <block wx:if="{{kind === 'collection'}}">
       <image wx:if="{{imageUrl}}" src="{{imageUrl}}" class="sg-cover" mode="aspectFit"/>
       <button class="sg-action" disabled="{{busy || attachmentBusy}}" bindtap="pickAttachmentImage">{{imageUrl ? '更换小物照片' : '拍照 / 选择小物照片'}}</button>
       <view wx:if="{{mediaError}}" class="sg-error">{{mediaError}}</view>
-      <label class="sg-field">
-        <text class="sg-label">地点</text><input class="sg-input" maxlength="200" value="{{draft.location}}" disabled="{{busy}}" data-key="location" bindinput="input"/>
-      </label>
+      <optional-section label="地点与内容（选填）" filled="{{draft.location || draft.content ? true : false}}">
+        <label class="sg-field">
+          <text class="sg-label">地点</text><input class="sg-input" maxlength="200" value="{{draft.location}}" disabled="{{busy}}" data-key="location" bindinput="input"/>
+        </label>
+        <label class="sg-field">
+          <text class="sg-label">内容</text><textarea class="sg-input sg-area" maxlength="10000" value="{{draft.content}}" disabled="{{busy}}" data-key="content" bindinput="input"/>
+        </label>
+      </optional-section>
     </block>
-    <label wx:if="{{kind !== 'anniversary' && kind !== 'mood' && kind !== 'whisper'}}" class="sg-field">
+    <label wx:if="{{kind !== 'anniversary' && kind !== 'collection' && kind !== 'mood' && kind !== 'whisper'}}" class="sg-field">
       <text class="sg-label">{{kind === 'wish' ? '愿望' : '内容'}}</text><textarea class="sg-input sg-area" maxlength="{{kind === 'wish' ? 5000 : 10000}}" value="{{draft.content}}" disabled="{{busy}}" data-key="content" bindinput="input"/>
     </label>
-    <label wx:if="{{kind === 'anniversary' || kind === 'wish'}}" class="sg-field">
-      <text class="sg-label">排序（越小越靠前）</text><input class="sg-input" type="number" maxlength="5" value="{{draft.sortOrder}}" placeholder="{{kind === 'wish' ? '选填，留空按创建时间' : '0'}}" disabled="{{busy}}" data-key="sortOrder" bindinput="input"/>
-    </label>
+    <optional-section wx:if="{{kind === 'anniversary' || kind === 'wish'}}" label="排序（选填）" filled="{{draft.sortOrder || draft.sortOrder === 0}}">
+      <label class="sg-field">
+        <text class="sg-label">排序（越小越靠前）</text><input class="sg-input" type="number" maxlength="5" value="{{draft.sortOrder}}" placeholder="{{kind === 'wish' ? '留空按创建时间' : '0'}}" disabled="{{busy}}" data-key="sortOrder" bindinput="input"/>
+      </label>
+    </optional-section>
     <block wx:if="{{kind === 'mood'}}">
       <label class="sg-field"><text class="sg-label">今天的心情</text><input class="sg-input" maxlength="30" value="{{draft.mood}}" disabled="{{busy}}" data-key="mood" bindinput="input"/></label>
-      <label class="sg-field"><text class="sg-label">描述（选填）</text><textarea class="sg-input sg-area" maxlength="1000" value="{{draft.description}}" disabled="{{busy}}" data-key="description" bindinput="input"/></label>
+      <optional-section label="描述（选填）" filled="{{draft.description ? true : false}}">
+        <label class="sg-field"><text class="sg-label">描述</text><textarea class="sg-input sg-area" maxlength="1000" value="{{draft.description}}" disabled="{{busy}}" data-key="description" bindinput="input"/></label>
+      </optional-section>
       <view class="sg-muted">北京时间每天一条，只能修改当天记录。</view>
     </block>
     <view wx:if="{{error}}" class="sg-error">{{error}}</view>
-    <view class="sg-actions">
+    <view class="sg-actions {{kind === 'whisper' ? 'entry-actions entry-actions--whisper' : ''}}">
       <button class="sg-action" disabled="{{busy || attachmentBusy}}" bindtap="cancel">取消</button>
       <button class="sg-action sg-action--primary" disabled="{{busy || attachmentBusy}}" loading="{{busy}}" bindtap="save">保存</button>
     </view>

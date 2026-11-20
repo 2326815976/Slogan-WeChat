@@ -4,12 +4,34 @@ let recorder;
 let session;
 const attachmentLabels = { image: '图片', video: '视频', audio: '音频' };
 
+function formatRecordingDuration(seconds) {
+  const value = Math.max(0, Math.floor(Number(seconds) || 0));
+  return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
+}
+
+function stopRecordingClock(owner) {
+  if (!owner) return;
+  if (owner.recordingClock) clearInterval(owner.recordingClock);
+  owner.recordingClock = null;
+  owner.recordingStartedAt = 0;
+}
+
+function startRecordingClock(owner) {
+  stopRecordingClock(owner);
+  owner.recordingStartedAt = Date.now();
+  owner.recordingClock = setInterval(() => {
+    if (!owner.mediaAlive || !owner.data.recording) return;
+    owner.setData({ recordingDurationText: formatRecordingDuration((Date.now() - owner.recordingStartedAt) / 1000) });
+  }, 250);
+}
+
 function finishRecording(result, error) {
   const owner = session?.owner;
+  stopRecordingClock(owner);
   session = null;
   if (!owner?.mediaAlive) return;
   if (error) {
-    owner.setData({ recording: false, attachmentBusy: false, mediaError: error.errMsg || '录音失败，请检查麦克风权限' });
+    owner.setData({ recording: false, recordingDurationText: '00:00', attachmentBusy: false, mediaError: error.errMsg || '录音失败，请检查麦克风权限' });
     return;
   }
   void owner.uploadAudio(result.tempFilePath);
@@ -26,6 +48,7 @@ function getRecorder() {
 
 function stopRecording(owner, discard = false) {
   if (session?.owner !== owner) return;
+  stopRecordingClock(owner);
   if (discard) session.owner = null;
   if (session.stopping) return;
   session.stopping = true;
@@ -34,11 +57,12 @@ function stopRecording(owner, discard = false) {
 }
 
 const messageMedia = Behavior({
-  data: { media: {}, recording: false, attachmentBusy: false, uploadOpen: false, selectedAttachment: null, audioUrl: '', imageUrl: '', localImageUrl: '', mediaError: '' },
+  data: { media: {}, recording: false, recordingDurationText: '00:00', attachmentBusy: false, uploadOpen: false, selectedAttachment: null, audioUrl: '', imageUrl: '', localImageUrl: '', mediaError: '' },
   lifetimes: {
     attached() { this.mediaAlive = true; },
     detached() {
       this.mediaAlive = false;
+      stopRecordingClock(this);
       stopRecording(this, true);
       this.audioPlayer?.destroy();
     },
@@ -50,7 +74,7 @@ const messageMedia = Behavior({
       const revision = this.mediaRevision = (this.mediaRevision || 0) + 1;
       this.audioPlayer?.stop();
       this.playRequest = null;
-      this.setData({ media: { audio, image, video, width, height }, uploadOpen: false, selectedAttachment: null, audioUrl: '', imageUrl: '', localImageUrl: '', mediaError: '' });
+      this.setData({ media: { audio, image, video, width, height }, recordingDurationText: '00:00', uploadOpen: false, selectedAttachment: null, audioUrl: '', imageUrl: '', localImageUrl: '', mediaError: '' });
       const preview = image && this.properties.kind !== 'collection' ? `${image}?variant=preview` : image;
       if (preview) void sg.mediaLinks([preview]).then(links => {
         if (this.mediaAlive && this.mediaRevision === revision && this.data.media.image === image) {
@@ -102,12 +126,15 @@ const messageMedia = Behavior({
       if (session) { this.setData({ mediaError: '上一段录音尚未结束，请稍后重试' }); return; }
       this.audioPlayer?.stop();
       session = { owner: this, stopping: false };
-      this.setData({ recording: true, attachmentBusy: true, uploadOpen: false, mediaError: '' });
-      try { getRecorder().start({ duration: 180000, sampleRate: 44100, numberOfChannels: 1, encodeBitRate: 128000, format: 'mp3' }); }
+      this.setData({ recording: true, recordingDurationText: '00:00', attachmentBusy: true, uploadOpen: false, mediaError: '' });
+      try {
+        getRecorder().start({ duration: 180000, sampleRate: 44100, numberOfChannels: 1, encodeBitRate: 128000, format: 'mp3' });
+        startRecordingClock(this);
+      }
       catch (error) { finishRecording(null, error); }
     },
     async uploadAudio(file) {
-      this.setData({ recording: false, attachmentBusy: true });
+      this.setData({ recording: false, recordingDurationText: '00:00', attachmentBusy: true });
       try {
         await this.uploadSelectedAttachment('audio', file, { fileName: 'recording.mp3', contentType: 'audio/mpeg' }, '录音');
       } finally {
@@ -128,6 +155,32 @@ const messageMedia = Behavior({
         if (this.mediaAlive) this.setData({ 'media.image': image, 'media.width': size.width, 'media.height': size.height, imageUrl: file, uploadOpen: false });
       } catch (error) {
         if (this.mediaAlive && !String(error.errMsg || '').includes('cancel')) this.setData({ mediaError: error.message || '图片上传失败' });
+      } finally {
+        if (this.mediaAlive) this.setData({ attachmentBusy: false });
+      }
+    },
+    async pickMixedAttachment() {
+      if (this.data.busy || this.data.attachmentBusy) return;
+      this.setData({ attachmentBusy: true, mediaError: '' });
+      try {
+        const file = await sg.chooseMixedMedia();
+        if (!this.mediaAlive) return;
+        const path = file.tempFilePath;
+        if (!path) throw new Error('未读取到所选图片或视频，请重试');
+        if (file.fileType === 'video') {
+          const quickTime = /\.mov$/i.test(path);
+          await this.uploadSelectedAttachment(
+            'video',
+            path,
+            { fileName: quickTime ? 'video.mov' : 'video.mp4', contentType: quickTime ? 'video/quicktime' : 'video/mp4' }
+          );
+        } else {
+          await this.uploadSelectedAttachment('image', path);
+        }
+      } catch (error) {
+        if (this.mediaAlive && !String(error.errMsg || '').includes('cancel')) {
+          this.setData({ mediaError: error.message || '图片或视频上传失败' });
+        }
       } finally {
         if (this.mediaAlive) this.setData({ attachmentBusy: false });
       }

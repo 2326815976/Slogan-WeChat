@@ -1,0 +1,23 @@
+<button
+  class="audio-player {{playing ? 'audio-player--playing' : ''}} {{hideControl ? 'audio-player--without-control' : ''}} {{embedded ? 'audio-player--embedded' : ''}}"
+  disabled="{{disabled || loading}}"
+  bindtap="toggleAudio"
+  aria-label="{{playing ? '暂停录音' : '播放录音'}}"
+  aria-pressed="{{playing}}"
+>
+  <view wx:if="{{!hideControl}}" class="audio-player__control" aria-hidden="true">
+    <view wx:if="{{playing}}" class="audio-player__pause">
+      <view /><view />
+    </view>
+    <view wx:else class="audio-player__play" />
+  </view>
+  <view class="audio-player__wave" aria-hidden="true">
+    <view class="audio-player__wave-layer">
+      <view wx:for="{{waveBars}}" wx:key="index" class="audio-player__bar" style="height: {{item.height}}rpx;" />
+    </view>
+    <view class="audio-player__wave-layer audio-player__wave-layer--active" style="clip-path: inset(0 {{clipRight}}% 0 0);">
+      <view wx:for="{{waveBars}}" wx:key="index" class="audio-player__bar" style="height: {{item.height}}rpx;" />
+    </view>
+  </view>
+  <text class="audio-player__duration">{{durationText}}</text>
+</button>

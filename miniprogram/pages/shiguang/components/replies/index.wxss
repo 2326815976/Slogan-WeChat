@@ -1,13 +1,417 @@
 @import '../../shared.wxss';
 
-.reply-panel { gap: 14rpx; padding-bottom: 8rpx; }
-.reply-list { overflow: hidden; border: 2rpx solid #efe1dc; border-radius: 22rpx; background: #fffdfb; }
-.reply-item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8rpx; padding: 14rpx 18rpx; }
-.reply-item + .reply-item { border-top: 1rpx solid #efe1dc; }
-.reply-heading > .sg-list-meta { flex: 1 1 200rpx; min-width: 0; }
-.reply-author { color: #5d4037; font-weight: 700; }
-.reply-item .sg-text { margin: 0; font-size: 26rpx; line-height: 1.6; }
-.reply-composer { gap: 12rpx; padding: 16rpx; border: 2rpx solid #efe1dc; border-radius: 22rpx; background: #fffdfb; }
-.reply-composer .reply-input { min-height: 120rpx; height: 132rpx; }
-.reply-empty { display: flex; flex-direction: column; align-items: center; gap: 14rpx; padding: 18rpx 0; }
-button.sg-action.reply-more { align-self: center; }
+.reply-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+  margin: 2rpx -20rpx -14rpx;
+  padding: 18rpx 20rpx 20rpx;
+  border-top: 1rpx solid #f0e5e0;
+  background: #fffaf8;
+}
+.reply-panel-heading { display: flex; align-items: center; gap: 10rpx; }
+.reply-panel-title { color: #5d4037; font-size: 25rpx; font-weight: 700; line-height: 1.4; }
+.reply-count { padding: 2rpx 12rpx; border-radius: 999rpx; background: #f8eee7; color: #795f56; font-size: 19rpx; line-height: 1.5; }
+.reply-list { display: flex; flex-direction: column; }
+.reply-item { display: flex; gap: 14rpx; min-width: 0; padding: 16rpx 0; }
+.reply-item + .reply-item { border-top: 1rpx solid #f2e7e2; }
+.reply-avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 54rpx;
+  height: 54rpx;
+  overflow: hidden;
+  border: 1rpx solid #eadcd6;
+  border-radius: 50%;
+  background: #f8e8ec;
+  color: #7d4354;
+  font-size: 21rpx;
+  font-weight: 700;
+}
+.reply-avatar image { width: 100%; height: 100%; }
+.reply-main { flex: 1; min-width: 0; }
+.reply-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; }
+.reply-identity { display: flex; flex: 1; flex-wrap: wrap; align-items: center; min-width: 0; gap: 4rpx 10rpx; }
+.reply-author { color: #5d4037; font-size: 23rpx; font-weight: 700; line-height: 1.4; }
+.reply-time { color: #8a7066; font-size: 19rpx; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.reply-own-actions { display: flex; flex: none; align-items: center; gap: 8rpx; }
+button.reply-action {
+  width: auto;
+  min-height: 42rpx;
+  margin: 0;
+  padding: 0 4rpx;
+  border: 0;
+  background: transparent;
+  color: #795f56;
+  font-size: 20rpx;
+  line-height: 1.4;
+}
+button.reply-action::after { border: 0; }
+button.reply-action--danger { color: #a64234; }
+.reply-text { margin-top: 5rpx; color: #5d4037; font-size: 25rpx; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.reply-media { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 10rpx; }
+.reply-empty { padding: 8rpx 0; color: #8a7066; font-size: 22rpx; line-height: 1.5; }
+button.reply-more {
+  align-self: flex-start;
+  width: auto;
+  min-height: 44rpx;
+  margin: 0;
+  padding: 0 4rpx;
+  border: 0;
+  background: transparent;
+  color: #85485a;
+  font-size: 21rpx;
+  font-weight: 600;
+  line-height: 1.4;
+}
+button.reply-more::after { border: 0; }
+.reply-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  padding: 16rpx;
+  border: 1rpx solid #eee0db;
+  border-radius: 22rpx;
+  background: #fffdfb;
+}
+.reply-composer-heading { display: flex; align-items: baseline; }
+.reply-composer-title { color: #5d4037; font-size: 23rpx; font-weight: 700; line-height: 1.4; }
+.reply-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 88rpx;
+  padding: 14rpx 16rpx;
+  border: 2rpx solid #e9dad4;
+  border-radius: 16rpx;
+  background: #fff;
+  color: #5d4037;
+  font-size: 25rpx;
+  line-height: 1.6;
+}
+.reply-composer-actions { display: flex; align-items: center; gap: 10rpx; }
+button.reply-tool, button.reply-cancel, button.reply-send {
+  width: auto;
+  margin: 0;
+  border-radius: 999rpx;
+  font-size: 21rpx;
+  line-height: 1.4;
+}
+button.reply-tool, button.reply-cancel { min-height: 48rpx; padding: 0 8rpx; border: 0; background: transparent; color: #795f56; }
+button.reply-tool { margin-right: auto; font-weight: 600; }
+button.reply-send { min-height: 52rpx; padding: 0 24rpx; border: 2rpx solid #efc076; background: #ffd894; color: #5d4037; font-weight: 700; }
+button.reply-tool::after, button.reply-cancel::after, button.reply-send::after { border: 0; }
+button.reply-tool[disabled], button.reply-cancel[disabled], button.reply-send[disabled], button.reply-more[disabled] { opacity: .5; }
+.reply-tools { padding-top: 10rpx; border-top: 1rpx dashed #efe1dc; }
+
+/* 评论列表按抖音评论区结构：头像、昵称、正文、时间与回复直接铺开。 */
+.reply-panel {
+  gap: 0;
+  margin: 4rpx -20rpx -14rpx;
+  padding: 2rpx 20rpx 18rpx;
+  border-top: 1rpx solid #f0e5e0;
+  background: linear-gradient(180deg, #fcf9f7, #faf5f2);
+}
+
+.reply-item {
+  gap: 14rpx;
+  padding: 18rpx 0;
+  border-top: 0;
+}
+
+.reply-item + .reply-item { border-top: 0; }
+.reply-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border: 0;
+  background: #f4e9e4;
+  font-size: 22rpx;
+}
+
+.reply-main { display: grid; gap: 4rpx; }
+.reply-identity { display: flex; align-items: center; min-width: 0; }
+.reply-author { color: #756b66; font-size: 22rpx; font-weight: 600; line-height: 1.4; }
+.reply-text { margin-top: 0; color: #403936; font-size: 26rpx; line-height: 1.65; }
+.reply-media { margin-top: 5rpx; }
+
+.reply-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8rpx 18rpx;
+  margin-top: 2rpx;
+  color: #9a918c;
+  font-size: 20rpx;
+  line-height: 1.5;
+}
+
+.reply-time { color: #9a918c; font-size: 20rpx; line-height: 1.5; }
+button.reply-action {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #7d746f;
+  font-size: 20rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.reply-own-actions { display: flex; align-items: center; gap: 16rpx; margin-left: auto; }
+.reply-own-actions .reply-action { color: #8c817b; }
+.reply-own-actions .reply-action--danger { color: #b35d50; }
+.reply-empty { padding: 16rpx 0 8rpx; color: #a19791; font-size: 21rpx; line-height: 1.6; }
+button.reply-more { min-height: 38rpx; padding: 2rpx 0; font-size: 21rpx; }
+
+.reply-composer {
+  gap: 8rpx;
+  margin-top: 10rpx;
+  padding: 12rpx;
+  border: 1rpx solid #f0e4de;
+  border-radius: 22rpx;
+  background: #fffaf6;
+}
+
+.reply-target {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  color: #8a7066;
+  font-size: 20rpx;
+  line-height: 1.4;
+}
+
+button.reply-target__cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 34rpx;
+  min-height: 34rpx;
+  margin: 0;
+  padding: 0 6rpx;
+  border: 0;
+  border-radius: 999rpx;
+  background: #f2e8e3;
+  color: #7d6c63;
+  font-size: 20rpx;
+  line-height: 1;
+}
+
+button.reply-target__cancel::after { border: 0; }
+.reply-composer-row { display: flex; align-items: center; gap: 8rpx; min-width: 0; }
+.reply-composer-avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  background: #f4e9e4;
+  color: #7d4354;
+  font-size: 21rpx;
+  font-weight: 700;
+}
+
+.reply-input {
+  flex: 1;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 56rpx;
+  max-height: 170rpx;
+  padding: 10rpx 14rpx;
+  border: 1rpx solid #e9dad4;
+  border-radius: 16rpx;
+  background: #fffdfa;
+  color: #5d4037;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
+button.reply-plus {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 56rpx;
+  height: 56rpx;
+  min-height: 56rpx;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f7eee8;
+  color: #75665e;
+  font-size: 31rpx;
+  font-weight: 400;
+  line-height: 1;
+}
+
+button.reply-plus::after,
+button.reply-send::after { border: 0; }
+button.reply-send {
+  width: auto;
+  min-width: 72rpx;
+  max-width: 96rpx;
+  min-height: 56rpx;
+  padding: 0 12rpx;
+  border: 1rpx solid #efc076;
+  border-radius: 14rpx;
+  background: linear-gradient(180deg, #ffe2aa, #ffd58e);
+  color: #5d4037;
+  font-size: 21rpx;
+  font-weight: 700;
+}
+
+button.reply-plus[disabled] { opacity: .48; }
+button.reply-send[disabled] {
+  border-color: #eadccf;
+  background: #f4eadc;
+  color: #ad9f93;
+  opacity: 1;
+}
+.reply-tools {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 4rpx;
+  padding: 12rpx 0 0;
+  overflow-x: hidden;
+  border: 0;
+  border-top: 1rpx dashed #efe1dc;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* 信息流式评论：昵称、时间、正文与弱操作分层展示。 */
+.reply-panel {
+  gap: 0;
+  margin: 8rpx -20rpx -14rpx;
+  padding: 0 20rpx 12rpx;
+  border-top: 1rpx solid #f1e7e2;
+  background: linear-gradient(180deg, #fcfaf8, #faf6f3);
+}
+.reply-panel-heading { display: flex; align-items: center; gap: 12rpx; padding: 18rpx 0 10rpx; }
+.reply-panel-title { color: #6c574d; font-size: 23rpx; font-weight: 700; line-height: 1.4; }
+.reply-count { padding: 2rpx 12rpx; background: #f2e8e3; color: #927c71; font-size: 18rpx; }
+.reply-list { display: flex; flex-direction: column; }
+.reply-item { align-items: flex-start; gap: 18rpx; padding: 24rpx 0; }
+.reply-item + .reply-item { border-top: 1rpx solid #f2e9e4; }
+.reply-avatar {
+  width: 68rpx;
+  height: 68rpx;
+  border: 0;
+  background: #f3e8e3;
+  box-shadow: 0 0 0 2rpx #fff;
+  font-size: 22rpx;
+}
+.reply-main { display: grid; gap: 5rpx; }
+.reply-identity { display: flex; align-items: center; flex-wrap: wrap; gap: 6rpx 12rpx; }
+.reply-author { color: #735f55; font-size: 22rpx; font-weight: 600; line-height: 1.4; }
+.reply-time { color: #a39791; font-size: 18rpx; font-weight: 400; line-height: 1.4; }
+.reply-self {
+  padding: 0 10rpx;
+  border-radius: 999rpx;
+  background: #f4e6eb;
+  color: #8b5c6c;
+  font-size: 17rpx;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.reply-text { margin: 0; color: #403936; font-size: 26rpx; line-height: 1.65; }
+.reply-mention { color: #855f70; font-weight: 600; }
+.reply-media { margin-top: 8rpx; }
+.reply-media .sg-inline-media--image { max-width: 420rpx; }
+.reply-meta { gap: 8rpx 22rpx; margin-top: 2rpx; color: #a19791; font-size: 19rpx; }
+button.reply-action { color: #837770; font-size: 19rpx; font-weight: 600; }
+.reply-own-actions { gap: 22rpx; }
+.reply-own-actions .reply-action--danger { color: #b35d50; }
+.reply-empty { padding: 22rpx 0 12rpx; color: #a39791; font-size: 21rpx; }
+button.reply-more { min-height: 38rpx; padding: 4rpx 0; font-size: 20rpx; }
+.reply-composer {
+  gap: 10rpx;
+  margin: 10rpx -20rpx -12rpx;
+  padding: 16rpx 20rpx calc(16rpx + env(safe-area-inset-bottom));
+  border: 0;
+  border-top: 1rpx solid #eee4df;
+  border-radius: 0;
+  background: rgba(255, 250, 247, 0.96);
+}
+.reply-target {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 5rpx 12rpx;
+  border-radius: 999rpx;
+  background: #f6ece7;
+}
+.reply-composer-row { align-items: center; gap: 10rpx; }
+.reply-input-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+.reply-input {
+  flex: 1;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 64rpx;
+  min-height: 64rpx;
+  max-height: 190rpx;
+  padding: 10rpx 16rpx;
+  border: 1rpx solid #e8dbd3;
+  border-radius: 16rpx;
+  background: #fffdfa;
+  color: #5d4037;
+  font-size: 26rpx;
+  line-height: 1.5;
+}
+.reply-input-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 16rpx;
+  z-index: 2;
+  color: #9a8c85;
+  font-size: 26rpx;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+button.reply-plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+  min-height: 64rpx;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f7eee8;
+  color: #6b5548;
+  font-size: 34rpx;
+  line-height: 1;
+}
+button.reply-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: auto;
+  min-width: 92rpx;
+  max-width: 118rpx;
+  min-height: 64rpx;
+  padding: 0 16rpx;
+  border: 1rpx solid #efc076;
+  border-radius: 16rpx;
+  background: linear-gradient(180deg, #ffe2aa, #ffd58e);
+  color: #5d4037;
+  font-size: 23rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+.reply-tools { margin-top: 2rpx; padding-top: 12rpx; }

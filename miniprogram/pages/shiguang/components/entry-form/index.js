@@ -1,19 +1,30 @@
 const sg = require('../../../../services/shiguang');
 const { messageMedia } = require('../message-media');
+const { extractTopics, firstTopic } = require('../../utils/topics');
 
 Component({
   behaviors: [messageMedia],
   properties: { kind: String, title: String, entry: { type: Object, value: null } },
-  data: { draft: {}, busy: false, error: '' },
+  data: { draft: {}, topics: [], busy: false, error: '' },
   observers: { entry(entry) { if (this.mediaAlive) this.initializeDraft(entry); } },
   lifetimes: { attached() { this.initializeDraft(this.properties.entry); } },
   methods: {
     initializeDraft(entry) {
       this.requestId = entry ? entry.id : sg.uuid();
-      this.setData({ draft: entry ? { ...entry.payload } : { direction: 'up', status: 'pending' }, error: '' });
+      const draft = entry ? { ...entry.payload } : { direction: 'up', status: 'pending' };
+      if (this.properties.kind === 'whisper') {
+        draft.content = String(draft.content || draft.title || '');
+        delete draft.title;
+      }
+      this.setData({ draft, topics: extractTopics(draft.content), error: '' });
       this.resetMedia(entry?.payload);
     },
-    input(event) { this.setData({ [`draft.${event.currentTarget.dataset.key}`]: event.detail.value }); },
+    input(event) {
+      const key = event.currentTarget.dataset.key;
+      const update = { [`draft.${key}`]: event.detail.value };
+      if (this.properties.kind === 'whisper' && key === 'content') update.topics = extractTopics(event.detail.value);
+      this.setData(update);
+    },
     choice(event) { this.setData({ [`draft.${event.currentTarget.dataset.key}`]: event.currentTarget.dataset.value }); },
     async save() {
       if (this.data.busy || this.data.attachmentBusy) return;
@@ -22,7 +33,8 @@ Component({
       const payload = { ...draft };
       if (kind === 'whisper') {
         const { audio, image, video } = media;
-        Object.assign(payload, { audio, image, video, type: audio ? 'audio' : 'text' });
+        delete payload.title;
+        Object.assign(payload, { audio, image, video, title: firstTopic(draft.content), type: audio ? 'audio' : 'text' });
       } else if (kind === 'collection') {
         const { image, width, height } = media;
         Object.assign(payload, { image, width, height });

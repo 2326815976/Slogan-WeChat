@@ -1,78 +1,158 @@
 <template name="entryActions">
-  <view wx:if="{{item.canManage || kind === 'whisper'}}" class="sg-list-actions">
-    <button wx:if="{{kind === 'whisper'}}" class="sg-action sg-list-action sg-list-action--accent" data-id="{{item.id}}" bindtap="replies">回复</button>
-    <block wx:if="{{item.canManage}}">
-      <button class="sg-action sg-list-action" disabled="{{kind === 'wish' && busy}}" data-id="{{item.id}}" bindtap="edit">编辑</button>
-      <button class="sg-action sg-list-action sg-list-action--danger" disabled="{{busy}}" data-id="{{item.id}}" bindtap="remove">删除</button>
-    </block>
+  <view wx:if="{{item.canManage}}" class="sg-list-actions entries-actions">
+    <button class="sg-action sg-list-action entries-row-action" disabled="{{kind === 'wish' && busy}}" data-id="{{item.id}}" bindtap="edit">编辑</button>
+    <button class="sg-action sg-list-action entries-row-action sg-list-action--danger" disabled="{{busy}}" data-id="{{item.id}}" bindtap="remove">删除</button>
   </view>
 </template>
-<secondary-page-shell title="{{title}}" scroll-y="{{!formOpen && !replyId}}" fallbackRoute="/pages/shiguang/index">
-  <view class="entries-content">
+<secondary-page-shell title="{{title}}" scroll-y="{{!formOpen}}" fallbackRoute="/pages/shiguang/index">
+  <view class="entries-content {{kind === 'whisper' ? 'entries-content--whisper' : ''}}">
     <view wx:if="{{error}}" class="sg-error">{{error}}</view>
-    <view wx:if="{{summary}}" class="entries-toolbar">
-      <button class="sg-action sg-action--primary" disabled="{{kind === 'wish' && busy}}" bindtap="add">{{actionLabel}}</button>
+    <view wx:if="{{summary && kind === 'whisper'}}" class="whisper-filter-panel">
+      <view class="whisper-filter-search">
+        <image class="whisper-filter-search__icon" src="/images/icons/search-gray.svg" mode="aspectFit" />
+        <input value="{{topicInput}}" maxlength="100" placeholder="内容或 #话题" confirm-type="search"
+          bindinput="inputTopic" bindconfirm="applySearch" />
+      </view>
+      <picker class="whisper-filter-option {{date ? 'whisper-filter-option--active' : ''}}" mode="date" value="{{date || summary.today}}" end="{{summary.today}}" bindchange="changeDate" aria-label="按时间筛选絮语">
+        <view class="whisper-filter-option__control" hover-class="whisper-filter-option__control--pressed">
+          <image class="whisper-filter-option__icon" src="/images/icons/calendar-brown.svg" mode="aspectFit" />
+        </view>
+      </picker>
+      <picker class="whisper-filter-option {{author ? 'whisper-filter-option--active' : ''}}" range="{{authorOptions}}" range-key="name" value="{{authorIndex}}" bindchange="changeAuthor" aria-label="按发布人筛选絮语">
+        <view class="whisper-filter-option__control" hover-class="whisper-filter-option__control--pressed">
+          <image class="whisper-filter-option__icon" src="/images/icons/user-brown.svg" mode="aspectFit" />
+        </view>
+      </picker>
+      <button wx:if="{{topic || keyword || date || author}}" class="whisper-filter-reset" hover-class="whisper-filter-reset--pressed" bindtap="clearWhisperFilters" aria-label="重置筛选">×</button>
+    </view>
+    <view wx:if="{{summary && kind !== 'whisper'}}" class="entries-toolbar">
       <view wx:if="{{kind === 'mood'}}" class="entries-filters">
         <picker class="entries-date-picker" mode="date" value="{{date || summary.today}}" end="{{summary.today}}" bindchange="changeDate">
           <view class="entries-date-control">
-            <text>{{date || '按日期筛选'}}</text>
-            <image src="./images/arrow.svg" mode="aspectFit" class="entries-filter-arrow" />
+            <image class="entries-date-icon" src="/images/icons/calendar-brown.svg" mode="aspectFit" />
+            <text class="entries-date-label">{{date || '按日期筛选'}}</text>
+            <view class="entries-filter-chevron" aria-hidden="true" />
           </view>
         </picker>
-        <button wx:if="{{date}}" class="sg-action entries-clear" bindtap="clearDate">查看全部</button>
+        <button wx:if="{{date}}" class="entries-filter-reset" bindtap="clearDate">全部</button>
       </view>
+      <button class="entries-add" disabled="{{kind === 'wish' && busy}}" bindtap="add">{{actionLabel}}</button>
     </view>
-    <view wx:if="{{!items.length && !error && (loaded || loading)}}" class="sg-card entries-empty sg-center sg-muted">
-      {{loading ? '正在加载记录…' : date ? '这一天没有心情记录。' : emptyLabel}}
+    <view wx:if="{{!items.length && !error && (loaded || loading)}}" class="entries-empty sg-center sg-muted">
+      {{loading ? '正在加载记录…' : kind === 'whisper' && (topic || keyword || date || author) ? '没有符合筛选条件的絮语。' : date ? '这一天没有心情记录。' : emptyLabel}}
     </view>
-    <view wx:if="{{items.length}}" class="{{kind === 'anniversary' ? 'entries-anniversary-grid' : 'sg-list-stack'}}">
+    <view wx:if="{{items.length}}" class="{{kind === 'anniversary' ? 'entries-anniversary-grid' : kind === 'whisper' ? 'entries-list entries-list--whisper' : 'entries-list'}}">
       <block wx:for="{{items}}" wx:key="id">
-        <view wx:if="{{kind === 'wish'}}" class="sg-list-item entries-wish">
-          <view class="entries-wish-heading {{item.payload.status === 'fulfilled' ? 'entries-wish--fulfilled' : ''}}">
-            <button class="entries-wish-check" disabled="{{busy || loading || !item.canManage}}" data-id="{{item.id}}" bindtap="toggleWish" aria-label="{{item.payload.status === 'fulfilled' ? '已实现，点击标记为未实现' : '未实现，点击标记为已实现'}}">
-              <text class="entries-wish-check__mark">{{item.payload.status === 'fulfilled' ? '✓' : ''}}</text>
-            </button>
-            <view class="sg-list-title">{{item.payload.content}}</view>
+        <view wx:if="{{kind === 'wish'}}" class="sg-list-item entries-wish {{item.payload.status === 'fulfilled' ? 'entries-wish--fulfilled' : ''}}">
+          <button class="entries-wish-check" disabled="{{busy || loading || !item.canManage}}" data-id="{{item.id}}" bindtap="toggleWish" aria-label="{{item.payload.status === 'fulfilled' ? '已实现，点击标记为未实现' : '未实现，点击标记为已实现'}}">
+            <text class="entries-wish-check__mark">{{item.payload.status === 'fulfilled' ? '✓' : ''}}</text>
+          </button>
+          <view class="entries-wish-copy">
+            <view class="entries-wish-title">{{item.payload.content}}</view>
+            <view class="entries-wish-meta">{{item.author || '空间成员'}}<text wx:if="{{item.time}}"> · {{item.time}}</text></view>
           </view>
-          <view class="entries-wish-side">
-            <template is="entryActions" data="{{item, kind, busy}}" />
-            <view class="sg-list-meta">{{item.author || '空间成员'}}<text wx:if="{{item.time}}"> · {{item.time}}</text></view>
+          <view wx:if="{{item.canManage}}" class="entries-wish-actions">
+            <button disabled="{{busy}}" data-id="{{item.id}}" bindtap="edit" aria-label="编辑愿望">
+              <image src="./images/pencil.svg" mode="aspectFit" />
+            </button>
+            <button class="entries-wish-action--danger" disabled="{{busy}}" data-id="{{item.id}}" bindtap="remove" aria-label="删除愿望">
+              <image src="/images/icons/trash-red.svg" mode="aspectFit" />
+            </button>
           </view>
         </view>
         <view wx:elif="{{kind === 'whisper'}}" class="sg-list-item entries-whisper">
-          <view wx:if="{{item.payload.title}}" class="sg-list-title">{{item.payload.title}}</view>
-          <view wx:if="{{item.payload.content}}" class="sg-text">{{item.payload.content}}</view>
-          <view wx:if="{{item.payload.image || item.payload.audio || item.payload.video}}" class="sg-list-media-actions">
-            <button wx:if="{{item.payload.image}}" class="sg-action sg-list-action {{item.imageUrl ? 'sg-list-thumbnail' : ''}}" data-field="image" data-reference="{{item.payload.image}}" bindtap="openAttachment" aria-label="查看原图">
-              <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill" lazy-load="{{true}}" />
-              <text wx:else>图片</text>
+          <view class="entries-post-header">
+            <view class="entries-post-avatar">
+              <image wx:if="{{item.authorAvatar}}" src="{{item.authorAvatar}}" mode="aspectFill" />
+              <text wx:else>{{item.authorInitial}}</text>
+            </view>
+            <view class="entries-post-identity">
+              <text class="entries-post-author">{{item.author}}</text>
+              <text class="entries-post-time">{{item.time}}</text>
+            </view>
+            <view wx:if="{{item.canManage}}" class="entries-post-manage">
+              <button class="entries-post-icon" disabled="{{busy}}" data-id="{{item.id}}" bindtap="edit" aria-label="编辑絮语">
+                <image src="./images/pencil.svg" mode="aspectFit" />
+              </button>
+              <button class="entries-post-icon entries-post-icon--danger" disabled="{{busy}}" data-id="{{item.id}}" bindtap="remove" aria-label="删除絮语">
+                <image src="/images/icons/trash-red.svg" mode="aspectFit" />
+              </button>
+            </view>
+          </view>
+          <view wx:if="{{item.showContent}}" class="entries-post-text">
+            <block wx:for="{{item.contentParts}}" wx:for-item="part" wx:key="index">
+              <text wx:if="{{part.topic}}" class="entries-topic-tag" data-topic="{{part.topic}}" bindtap="filterTopic" aria-role="button" aria-label="筛选话题 {{part.topic}}">{{part.text}}</text>
+              <text wx:else>{{part.text}}</text>
+            </block>
+          </view>
+          <view wx:if="{{item.mediaItems.length || item.payload.audio}}" class="entries-post-media entries-whisper-media">
+            <block wx:for="{{item.mediaItems}}" wx:for-item="media" wx:key="id">
+              <view wx:if="{{media.type === 'image'}}" class="entries-whisper-media__tile" data-field="image" data-reference="{{media.reference}}" bindtap="openAttachment" aria-role="button" aria-label="查看原图">
+                <image wx:if="{{media.url}}" class="entries-whisper-media__image" src="{{media.url}}" mode="aspectFill" lazy-load="{{true}}" />
+                <view wx:else class="sg-inline-image-placeholder">图片加载中...</view>
+              </view>
+              <view wx:elif="{{media.url}}" class="entries-whisper-media__tile entries-whisper-media__tile--video entries-whisper-media__video-frame">
+                <video id="whisper-video-{{media.id}}" class="entries-whisper-media__video entries-whisper-media__video-native"
+                  src="{{media.url}}" controls="{{false}}" object-fit="cover" show-progress="{{true}}"
+                  show-bottom-progress="{{true}}" show-play-btn="{{true}}" show-center-play-btn="{{true}}"
+                  show-fullscreen-btn="{{true}}" show-mute-btn="{{true}}" enable-progress-gesture="{{true}}"
+                  show-casting-button="{{false}}" show-background-playback-button="{{false}}"
+                  picture-in-picture-mode="{{[]}}" auto-pause-if-navigate="{{true}}" auto-pause-if-open-native="{{true}}"
+                  bindloadedmetadata="onWhisperVideoMetadata"
+                  data-id="{{media.id}}" />
+                <cover-view class="entries-whisper-video-compact"
+                  data-url="{{media.url}}" catchtap="openWhisperVideoPreview">
+                  <cover-view class="entries-whisper-video-compact__duration">{{media.durationText}}</cover-view>
+                </cover-view>
+              </view>
+              <button wx:else class="entries-whisper-media__tile entries-whisper-media__tile--video sg-inline-video-fallback" data-field="video" data-reference="{{media.reference}}" catchtap="openAttachment">查看视频</button>
+            </block>
+            <view wx:if="{{item.payload.audio}}" class="entries-whisper-audio" data-id="{{item.id}}" data-reference="{{item.payload.audio}}" bindtap="toggleWhisperAudio" aria-role="button" aria-label="{{whisperAudioId === item.id && whisperAudioPlaying ? '暂停语音' : '播放语音'}}">
+              <view class="entries-whisper-audio__control" aria-hidden="true">
+                <view wx:if="{{whisperAudioId === item.id && whisperAudioPlaying}}" class="entries-whisper-audio__pause"><view /><view /></view>
+                <view wx:else class="entries-whisper-audio__play" />
+              </view>
+              <view id="whisper-audio-progress-{{item.id}}" class="entries-whisper-audio__progress" data-id="{{item.id}}" data-reference="{{item.payload.audio}}" catchtap="seekWhisperAudio" aria-label="语音播放进度">
+                <view class="entries-whisper-audio__progress-fill" style="width: {{whisperAudioId === item.id ? whisperAudioProgress : 0}}%;"><view class="entries-whisper-audio__progress-thumb" /></view>
+              </view>
+              <text class="entries-whisper-audio__duration">{{whisperAudioId === item.id ? whisperAudioDuration : '00:00'}}</text>
+            </view>
+          </view>
+          <view class="entries-post-footer">
+            <button class="entries-post-reply {{replyId === item.id ? 'entries-post-reply--expanded' : ''}}" hover-class="entries-post-reply--pressed" data-id="{{item.id}}" bindtap="replies" aria-expanded="{{replyId === item.id}}">
+              <image src="/images/icons/message-square-brown.svg" mode="aspectFit" />
+              <text>{{replyId === item.id ? '收起评论' : '评论'}}</text>
+              <view class="entries-post-reply__chevron {{replyId === item.id ? 'entries-post-reply__chevron--expanded' : ''}}" aria-hidden="true" />
             </button>
-            <button wx:if="{{item.payload.audio}}" class="sg-action sg-list-action" data-reference="{{item.payload.audio}}" bindtap="play">播放音频</button>
-            <button wx:if="{{item.payload.video}}" class="sg-action sg-list-action" data-field="video" data-reference="{{item.payload.video}}" bindtap="openAttachment">播放视频</button>
           </view>
-          <view class="sg-list-footer">
-            <view class="sg-list-meta">{{item.author || '空间成员'}}<text wx:if="{{item.time}}"> · {{item.time}}</text></view>
-            <template is="entryActions" data="{{item, kind, busy}}" />
-          </view>
+          <space-replies wx:if="{{replyId === item.id}}" entryId="{{item.id}}" userId="{{summary.userId}}" members="{{summary.space.members}}" />
         </view>
-        <view wx:else class="sg-list-item">
+        <view wx:else class="sg-list-item {{kind === 'anniversary' ? 'entries-anniversary-item' : ''}}">
           <view class="sg-list-title">{{item.payload.name || item.payload.title || item.payload.mood || '一条记录'}}</view>
           <view wx:if="{{kind === 'anniversary'}}" class="entries-anniversary">
             <view class="entries-count">
-              <text>{{item.payload.direction === 'down' ? (item.days < 0 ? '已过' : '距离约定') : (item.days < 0 ? '距离这一天' : '一起走过')}}</text>
+              <view class="entries-anniversary__meta">
+                <text class="entries-anniversary__caption">{{item.payload.direction === 'down' ? (item.days < 0 ? '已过' : '距离约定') : (item.days < 0 ? '距离这一天' : '一起走过')}}</text>
+                <text class="entries-anniversary__date">{{item.payload.date}}</text>
+              </view>
               <view class="entries-count__value">
                 <text class="entries-count__number">{{item.days < 0 ? -item.days : item.days}}</text>
-                <text>天</text>
+                <text class="entries-count__unit">天</text>
               </view>
             </view>
-            <view class="sg-list-meta">{{item.payload.date}}</view>
           </view>
           <view wx:if="{{item.payload.location}}" class="sg-list-meta">{{item.payload.location}}</view>
           <view wx:if="{{item.payload.content || item.payload.description}}" class="sg-text">{{item.payload.content || item.payload.description}}</view>
-          <image wx:if="{{item.imageUrl}}" class="sg-cover entries-cover" src="{{item.imageUrl}}" mode="aspectFit" lazy-load="{{true}}" data-field="image" data-reference="{{item.payload.image}}" bindtap="openAttachment" aria-label="查看原图" />
+          <view wx:if="{{item.payload.image}}" class="sg-inline-media sg-inline-media--image" data-field="image" data-reference="{{item.payload.image}}" bindtap="openAttachment" aria-role="button" aria-label="查看原图">
+            <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="widthFix" lazy-load="{{true}}" />
+            <view wx:else class="sg-inline-image-placeholder">图片加载中...</view>
+          </view>
           <view wx:if="{{item.payload.audio || item.payload.video}}" class="sg-list-media-actions">
-            <button wx:if="{{item.payload.audio}}" class="sg-action sg-list-action" data-reference="{{item.payload.audio}}" bindtap="play">播放音频</button>
-            <button wx:if="{{item.payload.video}}" class="sg-action sg-list-action" data-field="video" data-reference="{{item.payload.video}}" bindtap="openAttachment">播放视频</button>
+            <view wx:if="{{item.payload.audio}}" class="sg-audio-player-slot"><audio-player class="sg-audio-component" reference="{{item.payload.audio}}" disabled="{{busy}}" /></view>
+            <view wx:if="{{item.payload.video}}" class="sg-inline-video-frame" style="aspect-ratio: {{item.videoAspectRatio}};">
+              <video wx:if="{{item.videoUrl}}" class="sg-inline-video" src="{{item.videoUrl}}" controls="{{true}}" object-fit="contain" show-center-play-btn="{{true}}" />
+              <button wx:else class="sg-inline-video-fallback" data-field="video" data-reference="{{item.payload.video}}" bindtap="openAttachment">查看视频</button>
+            </view>
           </view>
           <view class="sg-list-footer">
             <view class="sg-list-meta">{{item.author || '空间成员'}}<text wx:if="{{item.moodDate || item.time}}"> · {{item.moodDate || item.time}}</text></view>
@@ -81,8 +161,8 @@
         </view>
       </block>
     </view>
-    <button wx:if="{{hasMore}}" class="sg-action" loading="{{loading}}" disabled="{{loading || (kind === 'wish' && busy)}}" bindtap="more">加载更多记录</button>
+    <button wx:if="{{hasMore}}" class="entries-load-more" loading="{{loading}}" disabled="{{loading || (kind === 'wish' && busy)}}" bindtap="more">加载更多</button>
   </view>
 </secondary-page-shell>
 <entry-form wx:if="{{formOpen}}" kind="{{kind}}" title="{{title}}" entry="{{editing}}" bind:saved="saved" bind:cancel="cancel"/>
-<space-replies wx:if="{{replyId}}" entryId="{{replyId}}" userId="{{summary.userId}}" members="{{summary.space.members}}" bind:close="closeReplies"/>
+<whisper-composer wx:if="{{kind === 'whisper' && summary}}" bind:published="quickPublished"/>

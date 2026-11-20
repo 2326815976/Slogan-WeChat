@@ -1,0 +1,142 @@
+<button
+  wx:if="{{!composerOpen}}"
+  class="whisper-fab"
+  hover-class="whisper-fab--pressed"
+  disabled="{{busy}}"
+  bindtap="openComposer"
+  aria-label="发表絮语"
+>
+  <view class="whisper-fab__plus" />
+</button>
+
+<space-dialog
+  wx:if="{{composerOpen}}"
+  title="发表絮语"
+  compact="{{true}}"
+  busy="{{busy || attachmentBusy}}"
+  bind:close="closeComposer"
+>
+  <form class="whisper-publish-form" bindsubmit="publish">
+    <view class="whisper-publish-editor">
+      <textarea
+        class="whisper-publish-input"
+        auto-height="{{true}}"
+        auto-focus="{{true}}"
+        focus="{{composerOpen}}"
+        show-confirm-bar="{{false}}"
+        cursor-spacing="24"
+        maxlength="10000"
+        value="{{content}}"
+        disabled="{{busy}}"
+        placeholder="写点什么…"
+        bindinput="input"
+      />
+    </view>
+
+    <view wx:if="{{topics.length}}" class="whisper-publish-topics">
+      <text wx:for="{{topics}}" wx:key="*this">#{{item}}</text>
+    </view>
+
+    <view class="whisper-media-grid">
+      <view
+        wx:for="{{mediaItems}}"
+        wx:key="id"
+        class="whisper-media-slot"
+        data-field="{{item.type}}"
+        data-reference="{{item.reference}}"
+        bindtap="openAttachment"
+        aria-role="button"
+        aria-label="{{item.type === 'video' ? '预览视频' : '预览图片'}}"
+      >
+        <image wx:if="{{item.previewPath}}" class="whisper-media-slot__image" src="{{item.previewPath}}" mode="aspectFill" />
+        <view wx:else class="whisper-media-slot__placeholder">
+          <image src="/images/icons/video-brown.svg" mode="aspectFit" />
+        </view>
+        <view wx:if="{{item.type === 'video'}}" class="whisper-media-slot__video-badge">
+          <image src="/images/icons/video-brown.svg" mode="aspectFit" />
+        </view>
+        <button class="whisper-media-slot__remove" data-index="{{index}}" catchtap="removeMediaItem" aria-label="移除媒体">×</button>
+      </view>
+      <button
+        wx:if="{{mediaItems.length < 3}}"
+        class="whisper-media-add"
+        disabled="{{busy || attachmentBusy}}"
+        bindtap="chooseMediaSource"
+        aria-label="添加图片或视频"
+      >
+        <view class="whisper-media-add__plus" />
+      </button>
+    </view>
+
+    <view wx:if="{{mediaUploading}}" class="whisper-publish-status">
+      <view class="sg-media-loading-ring" />
+      <text>{{mediaUploadLabel || '正在上传媒体…'}}</text>
+    </view>
+    <view wx:if="{{attachmentBusy && !recording && !mediaUploading}}" class="whisper-publish-status">
+      <view class="sg-media-loading-ring" />
+      <text>正在处理录音…</text>
+    </view>
+
+    <view class="whisper-audio-bar {{recording ? 'whisper-audio-bar--recording' : ''}}">
+      <button
+        class="whisper-audio-bar__record {{recording ? 'whisper-audio-bar__record--active' : ''}}"
+        disabled="{{busy || (attachmentBusy && !recording)}}"
+        bindtap="handleAudioControl"
+        aria-label="{{recording ? '结束录音' : media.audio ? (audioPlaying ? '暂停录音' : '播放录音') : '开始录音'}}"
+      >
+        <view wx:if="{{recording}}" class="whisper-audio-bar__stop" />
+        <view wx:elif="{{media.audio}}" class="whisper-audio-bar__play-toggle">
+          <view wx:if="{{audioPlaying}}" class="whisper-audio-bar__pause"><view /><view /></view>
+          <view wx:else class="whisper-audio-bar__play" />
+        </view>
+        <image wx:else src="/images/icons/microphone-white.svg" mode="aspectFit" />
+      </button>
+      <view class="whisper-audio-bar__main">
+        <audio-player
+          wx:if="{{media.audio && !recording}}"
+          class="whisper-audio-bar__player"
+          reference="{{media.audio}}"
+          disabled="{{busy || attachmentBusy}}"
+          hide-control="{{true}}"
+          embedded="{{true}}"
+          bind:statechange="audioStateChange"
+          bind:durationchange="audioDurationChange"
+        />
+        <view class="whisper-audio-bar__preview {{recording || audioPlaying ? 'whisper-audio-bar__preview--active' : ''}}">
+          <view class="whisper-audio-bar__wave" aria-hidden="true">
+            <view wx:for="{{audioWaveBars}}" wx:key="index" class="whisper-audio-bar__wave-bar" style="height: {{item}}rpx;" />
+          </view>
+          <text class="whisper-audio-bar__duration">{{recording ? recordingDurationText : media.audio ? audioDurationText : '00:00'}}</text>
+        </view>
+      </view>
+      <button
+        wx:if="{{media.audio && !recording}}"
+        class="whisper-audio-bar__clear"
+        disabled="{{busy || attachmentBusy}}"
+        bindtap="clearAudio"
+        aria-label="清除录音"
+      >×</button>
+      <button
+        wx:else
+        class="whisper-audio-bar__upload"
+        disabled="{{busy || attachmentBusy}}"
+        data-field="audio"
+        bindtap="pickAttachmentFile"
+        aria-label="上传录音"
+      >
+        <view class="whisper-audio-bar__plus" />
+      </button>
+    </view>
+
+    <view wx:if="{{mediaError || error}}" class="sg-error">{{mediaError || error}}</view>
+
+    <view class="whisper-publish-actions">
+      <button
+        class="whisper-publish-submit"
+        form-type="submit"
+        loading="{{busy}}"
+        disabled="{{busy || attachmentBusy || (!content && !mediaItems.length && !media.audio)}}"
+      >发布絮语</button>
+    </view>
+  </form>
+</space-dialog>

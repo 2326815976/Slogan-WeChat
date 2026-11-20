@@ -1,43 +1,71 @@
 <import src="../message-media.wxml" />
-<space-dialog title="絮语回复" compact="{{true}}" busy="{{busy || attachmentBusy}}" bind:close="close">
-  <view class="sg-stack reply-panel">
-    <view wx:if="{{error}}" class="sg-error">{{error}}</view>
-    <view wx:if="{{mediaError && !formOpen}}" class="sg-error">{{mediaError}}</view>
-    <view wx:if="{{formOpen}}" class="sg-stack reply-composer">
-      <label class="sg-field"><textarea class="sg-input sg-area reply-input" placeholder="写回复…" aria-label="{{editing ? '编辑回复' : '回复内容'}}" maxlength="2000" value="{{content}}" disabled="{{busy}}" bindinput="input" /></label>
-      <template is="message-media" data="{{media, busy, attachmentBusy, recording, uploadOpen, imageUrl, mediaError, selectedAttachment}}" />
-      <view class="sg-list-actions">
-        <button class="sg-action sg-list-action" disabled="{{busy || attachmentBusy}}" bindtap="cancel">取消</button>
-        <button class="sg-action sg-list-action sg-list-action--accent" disabled="{{busy || attachmentBusy || (!content && !media.audio && !media.image && !media.video)}}" bindtap="save">{{editing ? '保存' : '发送'}}</button>
+<view class="reply-panel">
+  <view wx:if="{{error}}" class="sg-error">{{error}}</view>
+  <view wx:if="{{mediaError && !composerToolsOpen}}" class="sg-error">{{mediaError}}</view>
+  <view class="reply-panel-heading">
+    <text class="reply-panel-title">评论</text>
+    <text class="reply-count">{{items.length}}{{hasMore ? '+' : ''}}</text>
+  </view>
+
+  <view wx:if="{{items.length}}" class="reply-list">
+    <view wx:for="{{items}}" wx:key="id" class="reply-item">
+      <view class="reply-avatar">
+        <image wx:if="{{item.authorAvatar}}" src="{{item.authorAvatar}}" mode="aspectFill" />
+        <text wx:else>{{item.authorInitial}}</text>
       </view>
-    </view>
-    <view wx:elif="{{items.length}}" class="sg-list-actions">
-      <button class="sg-action sg-list-action sg-list-action--accent" disabled="{{busy}}" bindtap="start">写回复</button>
-    </view>
-    <view wx:if="{{items.length}}" class="reply-list">
-      <view wx:for="{{items}}" wx:key="id" class="reply-item">
-        <view class="sg-list-line reply-heading">
-          <view class="sg-list-meta"><text class="reply-author">{{item.author || '空间成员'}}</text><text wx:if="{{item.time}}"> · {{item.time}}</text></view>
-          <view wx:if="{{item.createdBy === userId}}" class="sg-list-actions">
-            <button class="sg-action sg-list-action" disabled="{{busy || attachmentBusy}}" data-id="{{item.id}}" bindtap="edit">编辑</button>
-            <button class="sg-action sg-list-action sg-list-action--danger" disabled="{{busy || attachmentBusy}}" data-id="{{item.id}}" bindtap="remove">删除</button>
+      <view class="reply-main">
+        <view class="reply-identity">
+          <text class="reply-author">{{item.author}}</text>
+          <text class="reply-time">{{item.time}}</text>
+          <text wx:if="{{item.createdBy === userId}}" class="reply-self">我</text>
+        </view>
+        <view wx:if="{{item.content}}" class="reply-text"><text wx:if="{{item.replyMention}}" class="reply-mention">{{item.replyMention}}：</text>{{item.replyText}}</view>
+        <view wx:if="{{item.image || item.audio || item.video}}" class="reply-media">
+          <view wx:if="{{item.image}}" class="sg-inline-media sg-inline-media--image" bindtap="openAttachment" data-field="image" data-reference="{{item.image}}" aria-role="button" aria-label="查看原图">
+            <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="widthFix" lazy-load="{{true}}" />
+            <view wx:else class="sg-inline-image-placeholder">图片加载中...</view>
+          </view>
+          <view wx:if="{{item.audio}}" class="sg-audio-player-slot"><audio-player class="sg-audio-component" reference="{{item.audio}}" disabled="{{busy || attachmentBusy}}" /></view>
+          <view wx:if="{{item.video}}" class="sg-inline-video-frame" style="aspect-ratio: {{item.videoAspectRatio}};">
+            <video wx:if="{{item.videoUrl}}" class="sg-inline-video" src="{{item.videoUrl}}" controls="{{true}}" object-fit="contain" show-center-play-btn="{{true}}" />
+            <button wx:else class="sg-inline-video-fallback" bindtap="openAttachment" data-field="video" data-reference="{{item.video}}">查看视频</button>
           </view>
         </view>
-        <view wx:if="{{item.content}}" class="sg-text">{{item.content}}</view>
-        <view wx:if="{{item.image || item.audio || item.video}}" class="sg-list-media-actions">
-          <button wx:if="{{item.image}}" class="sg-action sg-list-action {{item.imageUrl ? 'sg-list-thumbnail' : ''}}" bindtap="openAttachment" data-field="image" data-reference="{{item.image}}" aria-label="查看原图">
-            <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill" lazy-load="{{true}}" />
-            <text wx:else>图片</text>
-          </button>
-          <button wx:if="{{item.audio}}" class="sg-action sg-list-action" bindtap="playAttachment" data-reference="{{item.audio}}">播放音频</button>
-          <button wx:if="{{item.video}}" class="sg-action sg-list-action" bindtap="openAttachment" data-field="video" data-reference="{{item.video}}">播放视频</button>
+        <view class="reply-meta">
+          <button class="reply-action" disabled="{{busy || attachmentBusy}}" data-id="{{item.id}}" bindtap="beginReply">回复</button>
+          <view wx:if="{{item.createdBy === userId}}" class="reply-own-actions">
+            <button class="reply-action" disabled="{{busy || attachmentBusy}}" data-id="{{item.id}}" bindtap="edit">编辑</button>
+            <button class="reply-action reply-action--danger" disabled="{{busy || attachmentBusy}}" data-id="{{item.id}}" bindtap="remove">删除</button>
+          </view>
         </view>
       </view>
     </view>
-    <view wx:elif="{{!error && !formOpen}}" class="sg-list-meta reply-empty">
-      <text>{{loaded ? '暂无回复' : '加载中…'}}</text>
-      <button wx:if="{{loaded}}" class="sg-action sg-list-action sg-list-action--accent" disabled="{{busy}}" bindtap="start">写回复</button>
-    </view>
-    <button wx:if="{{hasMore}}" class="sg-action sg-list-action reply-more" disabled="{{busy}}" bindtap="more">更多回复</button>
   </view>
-</space-dialog>
+  <view wx:else class="reply-empty">{{loaded ? '还没有评论，来写第一条吧。' : '正在加载评论…'}}</view>
+
+  <button wx:if="{{hasMore}}" class="reply-more" disabled="{{busy}}" bindtap="more">展开更多评论</button>
+
+  <view class="reply-composer">
+    <view wx:if="{{editing}}" class="reply-target">
+      <text>正在编辑评论</text>
+      <button class="reply-target__cancel" disabled="{{busy || attachmentBusy}}" bindtap="cancel">取消</button>
+    </view>
+    <view wx:if="{{replyToName}}" class="reply-target">
+      <text>回复 @{{replyToName}}</text>
+      <button class="reply-target__cancel" disabled="{{busy || attachmentBusy}}" aria-label="取消回复" bindtap="cancelReplyTarget">×</button>
+    </view>
+    <view class="reply-composer-row">
+      <button class="reply-plus" disabled="{{busy || attachmentBusy}}" bindtap="toggleComposerTools" aria-label="{{composerToolsOpen ? '收起附件工具' : '添加图片、视频、录音或附件'}}">{{composerToolsOpen ? '×' : '+'}}</button>
+      <view class="reply-input-wrap" bindtap="focusComposer">
+        <textarea class="reply-input" auto-height="{{true}}" show-confirm-bar="{{false}}" cursor-spacing="24"
+          placeholder="" maxlength="2000" value="{{content}}" focus="{{composerFocused}}"
+          disabled="{{busy}}" bindinput="input" bindblur="blurComposer" />
+        <cover-view wx:if="{{!content}}" class="reply-input-placeholder">{{replyToName ? '回复评论…' : editing ? '修改评论…' : '说点什么…'}}</cover-view>
+      </view>
+      <button class="reply-send" loading="{{busy}}" disabled="{{busy || attachmentBusy || (!content && !media.audio && !media.image && !media.video)}}" bindtap="save">{{editing ? '保存' : '发送'}}</button>
+    </view>
+    <view wx:if="{{composerToolsOpen}}" class="reply-tools">
+      <template is="message-media" data="{{media, busy, attachmentBusy, recording, uploadOpen, imageUrl, mediaError, selectedAttachment}}" />
+    </view>
+  </view>
+</view>
